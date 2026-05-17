@@ -1,5 +1,7 @@
-// Frontend helper: backend URL from meta tag
-const BACKEND_URL = document.querySelector('meta[name="backend-url"]')?.content || '';
+// Frontend helper: backend URL from meta tag (define only if not defined)
+if (typeof BACKEND_URL === 'undefined') {
+  var BACKEND_URL = document.querySelector('meta[name="backend-url"]')?.content || '';
+}
 
 // ===================== LÓGICA DE INTERFAZ Y FORMULARIOS =====================
 
@@ -197,6 +199,60 @@ function updateReferencesVisibility() {
   const refs = document.getElementById('references-section');
   if (!refs) return;
   refs.style.display = (tplSel && tplSel.value === 'template-2') ? '' : 'none';
+}
+
+// Palette selector for template-2 (moderno)
+const paletteOptions = [
+  { name: 'Verde', primary: '#16a34a', primary600: '#15803d', primary50: '#ecfdf3', primary100: '#dcfce7' },
+  { name: 'Azul', primary: '#2563eb', primary600: '#1f4fc4', primary50: '#ecf3ff', primary100: '#dff2ff' },
+  { name: 'Morado', primary: '#6d28d9', primary600: '#5b21b6', primary50: '#f3e8ff', primary100: '#ede9fe' },
+  { name: 'Naranja', primary: '#f59e0b', primary600: '#d97706', primary50: '#fff7ed', primary100: '#ffedd5' },
+  { name: 'Gris', primary: '#374151', primary600: '#1f2937', primary50: '#f8fafc', primary100: '#f1f5f9' }
+];
+
+function renderPaletteSelector() {
+  const container = document.getElementById('palette-selector');
+  if (!container) return;
+  container.innerHTML = '';
+  const wrap = document.createElement('div'); wrap.className = 'palette-container';
+  paletteOptions.forEach((p, idx) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'palette-swatch';
+    btn.title = p.name;
+    btn.style.background = p.primary;
+    btn.dataset.idx = idx;
+    btn.addEventListener('click', () => { applyPalette(idx); markSelectedSwatch(idx); });
+    wrap.appendChild(btn);
+  });
+  container.appendChild(wrap);
+  // label
+  const label = document.createElement('div'); label.className = 'palette-label'; label.textContent = 'Color (Moderna)';
+  container.appendChild(label);
+  updatePaletteVisibility();
+}
+
+function markSelectedSwatch(idx) {
+  const container = document.querySelectorAll('.palette-swatch');
+  container.forEach(el => el.classList.toggle('selected', Number(el.dataset.idx) === idx));
+}
+
+function applyPalette(idx) {
+  const p = paletteOptions[idx];
+  if (!p) return;
+  document.documentElement.style.setProperty('--primary', p.primary);
+  document.documentElement.style.setProperty('--primary-600', p.primary600);
+  document.documentElement.style.setProperty('--primary-50', p.primary50);
+  document.documentElement.style.setProperty('--primary-100', p.primary100);
+  // re-render preview if needed
+  sync();
+}
+
+function updatePaletteVisibility() {
+  const sel = document.getElementById('template-select');
+  const container = document.getElementById('palette-selector');
+  if (!container || !sel) return;
+  container.style.display = sel.value === 'template-2' ? 'flex' : 'none';
 }
 
 function addEntry(type) {
@@ -918,4 +974,163 @@ function generateTextFromAnswers(context, answers, meta) {
   return truncateWords(text, 150);
 }
 
-// Palette selector for template-2 (moderno) and the rest of the file unchanged (rendering, sync, etc.)
+function clearFieldError(fieldId) {
+  const errId = 'err-' + fieldId.replace(/^f-/, '');
+  const errEl = document.getElementById(errId);
+  const field = document.getElementById(fieldId);
+  if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+  if (field) field.classList.remove('input-error');
+}
+
+function validateEmail() {
+  const el = document.getElementById('f-email');
+  const err = document.getElementById('err-email');
+  if (!el) return true;
+  const v = el.value.trim();
+  const ok = v !== '' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+  if (err) { err.style.display = ok ? 'none' : ''; err.textContent = ok ? '' : 'Email inválido o vacío'; }
+  el.classList.toggle('input-error', !ok);
+  return ok;
+}
+
+function validatePhone() {
+  const el = document.getElementById('f-phone');
+  if (!el) return true;
+  const v = el.value.trim();
+  const ok = v === '' || v.length >= 7;
+  el.classList.toggle('input-error', !ok);
+  return ok;
+}
+
+function showPage(n) {
+  const p1 = document.getElementById('form-page-1'), p2 = document.getElementById('form-page-2');
+  if (n === 2) {
+    const nameVal = val('f-name'), titleVal = val('f-title');
+    let firstMissing = null;
+    if (!nameVal) { showFieldError('f-name', 'Completa tu nombre.'); firstMissing = firstMissing || 'f-name'; }
+    if (!titleVal) { showFieldError('f-title', 'Completa tu título profesional.'); firstMissing = firstMissing || 'f-title'; }
+    if (firstMissing) { const el = document.getElementById(firstMissing); if (el) el.focus(); return; }
+    if (!validateEmail()) return;
+  }
+  p1.style.display = n === 1 ? '' : 'none';
+  p2.style.display = n === 2 ? '' : 'none';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function sync() {
+  const name = val('f-name'), title = val('f-title'), bio = val('f-bio'), photo = val('f-photo');
+  const metaParts = [];
+  const fields = [
+    {id:'f-cedula', icon:'ti-id-badge', label: 'C.I: '},
+    {id:'f-dob', icon:'ti-calendar', label: ''},
+    {id:'f-location', icon:'ti-map-pin', label: ''},
+    {id:'f-phone', icon:'ti-phone', label: ''},
+    {id:'f-email', icon:'ti-mail', label: ''}
+  ];
+
+  fields.forEach(f => {
+    const v = val(f.id);
+    if (v) metaParts.push(`<span><i class="ti ${f.icon}" style="font-size:11px"></i> ${f.label}${esc(v)}</span>`);
+  });
+
+  const initials = name.split(' ').map(x => x[0] || '').slice(0, 2).join('').toUpperCase() || '?';
+  const avatarHTML = photo ? `<img src="${esc(photo)}">` : `<span>${initials}</span>`;
+
+  const expHTML = entries.exp.length ? `<div class="cv-section"><div class="cv-section-title">Experiencia</div>${entries.exp.map(e => `
+    <div class="cv-entry">
+      <div class="cv-entry-title">${esc(e.role || 'Cargo')}</div>
+      <div class="cv-entry-sub">${esc(e.company || 'Empresa')} ${e.dates ? '&middot; ' + esc(e.dates) : ''}</div>
+      ${e.desc ? `<div class="cv-entry-desc">${esc(e.desc)}</div>` : ''}
+    </div>`).join('')}</div>` : '';
+
+  const eduHTML = entries.edu.length ? `<div class="cv-section"><div class="cv-section-title">Educación</div>${entries.edu.map(e => `
+    <div class="cv-entry">
+      <div class="cv-entry-title">${esc(e.role || 'Título')}</div>
+      <div class="cv-entry-sub">${esc(e.company || 'Institución')} ${e.dates ? '&middot; ' + esc(e.dates) : ''}</div>
+    </div>`).join('')}</div>` : '';
+
+  const skillsHTML = skills.length ? `<div class="cv-section"><div class="cv-section-title">Habilidades</div><div class="cv-skills-list">${skills.map(s => `<span class="cv-skill-tag">${esc(s)}</span>`).join('')}</div></div>` : '';
+  const languagesHTML = languages.length ? `<div class="cv-section"><div class="cv-section-title">Idiomas</div><div class="cv-skills-list">${languages.map(l => `<span class="cv-skill-tag">${esc(l)}</span>`).join('')}</div></div>` : '';
+  const portfolioHTML = entries.portfolio.length ? `<div class="cv-section"><div class="cv-section-title">Adjuntos opcionales</div><div class="cv-portfolio-list">${entries.portfolio.map(item => {
+    const safeTitle = esc(item.title || item.fileName || 'Adjunto');
+    const typeLabel = esc(item.type || 'otro');
+    const fileLabel = item.fileName ? `<div class="cv-portfolio-file">Archivo: ${esc(item.fileName)}</div>` : '';
+    const linkLabel = item.link ? `<a class="cv-portfolio-link" href="${esc(safeHref(item.link))}" target="_blank" rel="noopener noreferrer">${safeTitle}</a>` : `<span class="cv-portfolio-text">${safeTitle}</span>`;
+    return `<div class="cv-portfolio-item"><div class="cv-portfolio-type">${typeLabel}</div>${linkLabel}${fileLabel}</div>`;
+  }).join('')}</div></div>` : '';
+
+  const tpl = document.getElementById('template-select').value;
+  const output = document.getElementById('cv-output');
+
+  if (tpl === 'template-2') {
+    output.innerHTML = `
+      <div class="cv-template template-2">
+        <div class="cv-side">
+          <div class="cv-avatar">${avatarHTML}</div>
+          <div class="cv-meta">${metaParts.join('')}</div>
+          ${skillsHTML}
+          ${languagesHTML}
+        </div>
+        <div class="cv-main">
+          <div class="cv-name">${esc(name || 'Tu Nombre')}</div>
+          <div class="cv-job-title">${esc(title || 'Tu Título')}</div>
+          ${bio ? `<div class="cv-section"><div class="cv-section-title">Perfil</div><div class="cv-bio">${esc(bio)}</div></div>` : ''}
+          ${expHTML}
+          ${eduHTML}
+          ${portfolioHTML}
+        </div>
+      </div>`;
+  } else {
+    output.innerHTML = `
+      <div class="cv-template ${tpl}">
+        <div class="cv-header">
+          <div style="flex:1">
+            <div class="cv-name">${esc(name || 'Tu Nombre')}</div>
+            <div class="cv-job-title">${esc(title || 'Tu Título')}</div>
+            <div class="cv-meta">${metaParts.join('')}</div>
+          </div>
+          <div class="cv-avatar">${avatarHTML}</div>
+        </div>
+        ${bio ? `<div class="cv-section"><div class="cv-section-title">Perfil</div><div class="cv-bio">${esc(bio)}</div></div>` : ''}
+        ${expHTML}
+        ${eduHTML}
+        ${portfolioHTML}
+        ${skillsHTML}
+        ${languagesHTML}
+      </div>`;
+  }
+
+  if (tutorialState && tutorialState.active && tutorialState.steps[tutorialState.step]?.selector === '.cv-name') {
+    const previewName = output.querySelector('.cv-name');
+    if (previewName) previewName.classList.add('tutorial-preview-focus');
+  }
+}
+
+function boot() {
+  initInputListeners();
+  renderSkillChips();
+  renderLanguageChips();
+  renderPortfolioItems();
+  renderPaletteSelector();
+  updatePortfolioFormVisibility();
+  sync();
+  setTimeout(() => {
+    showConfirmModal('¿Necesitas o quieres un tutorial para usar la página?', (ok) => {
+      if (ok) {
+        startIntroTour();
+      } else {
+        setTutorialHint('');
+        clearTutorialHighlights();
+      }
+    }, { title: 'Tutorial inicial', yesText: 'Aceptar', noText: 'Cancelar' });
+  }, 200);
+  const start = Date.now();
+  const tryShow = () => {
+    if (document.getElementById('modal-root')) {
+      return;
+    }
+    if (Date.now() - start < 2000) setTimeout(tryShow, 50);
+  };
+  tryShow();
+}
+

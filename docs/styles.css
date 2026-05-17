@@ -37,8 +37,10 @@ header h1 {
 
 .app {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* Left: flexible form, Right: fixed preview column for consistent side-by-side layout */
+  grid-template-columns: minmax(420px, 1fr) 560px;
   height: calc(100vh - 60px);
+  gap: 0;
 }
 
 @media (max-width: 768px) {
@@ -71,6 +73,9 @@ header h1 {
   .panel-preview {
     min-height: auto;
   }
+
+.panel-form { grid-column: 1; }
+.panel-preview { grid-column: 2; align-self: start; }
 
   .panel-preview {
     padding-top: 1rem;

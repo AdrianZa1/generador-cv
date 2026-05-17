@@ -158,7 +158,7 @@ function startIntroTour() {
         nextLabel: 'Siguiente'
       },
       { selector: '.cv-name', hint: '<strong>Paso 2.</strong> Aquí se muestra automáticamente tu nombre en la plantilla.', placement: 'right', showNextButton: true, nextLabel: 'Siguiente', autoAdvanceAfter: 123000 },
-      { selector: '#download-pdf', hint: '<strong>Último paso.</strong> Una vez completada tu plantilla, puedes descargarla en el botón Descargar PDF.', placement: 'bottom', focusPage: 1 }
+      { selector: '#download-pdf-footer', hint: '<strong>Último paso.</strong> Una vez completada tu plantilla, puedes descargarla en el botón Descargar PDF.', placement: 'bottom', focusPage: 1 }
     ]
   };
   showTutorialStep(0);

@@ -91,7 +91,10 @@ function initInputListeners() {
   });
 
   // Botones de acción
-  document.getElementById('download-pdf').onclick = downloadPDF;
+  ['download-pdf', 'download-pdf-footer'].forEach(id => {
+    const button = document.getElementById(id);
+    if (button) button.onclick = downloadPDF;
+  });
   document.getElementById('btn-next').onclick = () => showPage(2);
   document.getElementById('btn-back').onclick = () => showPage(1);
   document.getElementById('add-exp').onclick = () => addEntry('exp');
@@ -122,7 +125,7 @@ function initInputListeners() {
 }
 
 async function downloadPDF() {
-  if (tutorialState && tutorialState.active && tutorialState.steps[tutorialState.step]?.selector === '#download-pdf') {
+  if (tutorialState && tutorialState.active && tutorialState.steps[tutorialState.step]?.selector === '#download-pdf-footer') {
     endIntroTour();
   }
   const el = document.getElementById('cv-output');

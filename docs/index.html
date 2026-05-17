@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generador de CV Profesional</title>
+  <meta name="backend-url" content="">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles-form.css">
+  <link rel="stylesheet" href="styles-cv.css">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+
+  <!-- Intro.js (onboarding) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intro.js@7.2.0/introjs.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/intro.js@7.2.0/intro.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+
+  <style>
+    /* Ajustes de tamaño de fuente solicitados para un acabado más profesional */
+    .cv-section-title, .cv-entry-title, .cv-job-title {
+      font-size: 12px !important;
+    }
+    .cv-bio, .cv-entry-desc, .cv-meta, .cv-skill-tag, .cv-entry-sub, .cv-references-list {
+      font-size: 10px !important;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <i class="ti ti-file-cv" style="font-size:22px; color:var(--primary)"></i>
+  <h1>Generador de CV Profesional</h1>
+  <!-- Autocorrector enabled by default (no toggle) -->
+    <div style="display:flex; gap:8px; align-items:center">
+    <button class="add-btn" id="download-pdf">📄 Descargar PDF</button>
+  </div>
+</header>
+
+<div class="app">
+
+  <!-- ===== FORMULARIO ===== -->
+  <div class="panel-form">
+    <div class="panel-title">
+      <i class="ti ti-edit"></i> Datos del CV
+    </div>
+    <div id="tutorial-hint" class="tutorial-hint" style="display:none"></div>
+    <!-- PAGE 1 -->
+    <div id="form-page-1" class="form-page">
+      <div class="section-heading">Información personal</div>
+
+      <div class="field-row">
+        <div>
+          <label>Nombre completo</label>
+          <input type="text" id="f-name" placeholder="Juan Pérez">
+          <div class="error-text" id="err-name" style="display:none"></div>
+        </div>
+        <div>
+          <label>Título profesional</label>
+          <input type="text" id="f-title" placeholder="Ej: Enfermera, Docente, Contador, Abogado">
+          <div class="error-text" id="err-title" style="display:none"></div>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div>
+          <label>Correo electrónico</label>
+          <input type="email" id="f-email" placeholder="juan@ejemplo.com">
+          <div class="error-text" id="err-email" style="display:none"></div>
+        </div>
+        <div>
+          <label>Teléfono</label>
+          <input type="tel" id="f-phone" placeholder="+593 99 123 4567">
+          <div class="error-text" id="err-phone" style="display:none"></div>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div>
+          <label>Ubicación</label>
+          <input type="text" id="f-location" placeholder="Quito, Ecuador">
+        </div>
+        <div>
+          <label>Cédula / ID</label>
+          <input type="text" id="f-cedula" placeholder="1712345678">
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div>
+          <label>Fecha de nacimiento</label>
+          <input type="date" id="f-dob">
+        </div>
+      </div>
+
+      <div class="field-row full">
+        <label>Foto de perfil</label>
+        <input type="file" id="f-photo-file" accept="image/*">
+        <button class="add-btn" id="f-photo-clear" type="button" style="margin-top:6px; display:none">Quitar foto</button>
+        <input type="hidden" id="f-photo" value="">
+      </div>
+
+      <div class="section-heading">Resumen profesional</div>
+
+      <div class="field-row full">
+        <div style="display:flex; gap:8px; align-items:flex-start; width:100%">
+          <textarea id="f-bio" placeholder="Breve descripción de tu experiencia y objetivos..." style="flex:1"></textarea>
+          <div style="display:flex; align-items:flex-start; flex-direction:column; gap:6px">
+            <button class="add-btn" id="btn-improve-bio" type="button">Mejorar</button>
+            <button class="add-btn" id="btn-create-bio" type="button">Crear</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions" style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px">
+        <button class="add-btn" id="btn-next">Siguiente →</button>
+      </div>
+    </div>
+
+    <!-- PAGE 2 -->
+    <div id="form-page-2" class="form-page" style="display:none">
+      <div class="section-heading">Experiencia laboral</div>
+      <div id="exp-list"></div>
+      <button class="add-btn" id="add-exp" type="button">
+        <i class="ti ti-plus"></i> Añadir experiencia
+      </button>
+
+      <div class="section-heading">Educación</div>
+      <div id="edu-list"></div>
+      <button class="add-btn" id="add-edu" type="button">
+        <i class="ti ti-plus"></i> Añadir educación
+      </button>
+
+      <div class="section-heading">Habilidades</div>
+      <div class="skill-chips" id="skill-chips"></div>
+      <div class="skill-input-row">
+        <input type="text" id="f-skill" placeholder="Ej: Comunicación, liderazgo, ventas..." style="flex:1">
+      </div>
+
+      <div class="section-heading">Idiomas</div>
+      <div class="skill-chips" id="language-chips"></div>
+      <div class="skill-input-row">
+        <input type="text" id="f-language" placeholder="Ej: Español, Inglés" style="flex:1">
+      </div>
+
+      <div class="section-heading">Adjuntos opcionales</div>
+      <div class="section-help">Si cuentas con portafolio web, certificados, proyectos o evidencias de trabajo, añádelos aquí. Si no aplica, puedes omitir esta sección.</div>
+      <div id="portfolio-list"></div>
+      <div class="field-row full" style="margin-top:8px">
+        <div class="field-row" style="margin-bottom:0">
+          <div>
+            <label>Tipo</label>
+            <select id="f-portfolio-type">
+              <option value="" selected>Selecciona una opción</option>
+              <option value="portafolio web">Portafolio web</option>
+              <option value="certificado">Certificado</option>
+              <option value="proyecto">Proyecto</option>
+              <option value="evidencia">Evidencia de trabajo</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+          <div id="portfolio-title-field" style="display:none">
+            <label>Título o nombre</label>
+            <input type="text" id="f-portfolio-title" placeholder="Ej: Certificado de curso, proyecto, evidencia">
+          </div>
+          <div id="portfolio-link-field" style="display:none">
+            <label>Enlace o URL</label>
+            <input type="text" id="f-portfolio-link" placeholder="https://... (opcional)">
+          </div>
+          <div id="portfolio-file-field" style="display:none">
+            <label>Archivo</label>
+            <input type="file" id="f-portfolio-file" accept="image/*,application/pdf">
+          </div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; margin-top:8px">
+          <button class="add-btn" id="btn-add-portfolio" type="button">Añadir adjunto</button>
+        </div>
+      </div>
+
+      <div id="references-section" style="display:none; margin-top:12px">
+        <div class="section-heading">Referencias</div>
+        <div id="references-list"></div>
+        <div style="display:flex; gap:8px; margin-top:8px">
+          <input type="text" id="f-reference" placeholder="Nombre - Contacto (opcional)" style="flex:1">
+          <button class="add-btn" id="btn-add-reference" type="button">Añadir</button>
+        </div>
+      </div>
+
+      <div class="form-actions" style="display:flex; justify-content:space-between; gap:8px; margin-top:12px">
+        <div>
+          <button class="add-btn" id="btn-back">← Anterior</button>
+        </div>
+        <div>
+          <button class="add-btn" id="download-pdf-footer">📄 Descargar PDF</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== VISTA PREVIA ===== -->
+  <div class="panel-preview">
+    <div class="panel-title">
+      <i class="ti ti-eye"></i> Vista previa
+    </div>
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px">
+      <div style="font-size:12px; color:#666">Plantilla:</div>
+      <div id="palette-selector" style="margin-right:12px"></div>
+      <select id="template-select" style="padding:6px 8px; border-radius:6px; border:1px solid #ddd">
+        <option value="template-1">Clásica</option>
+        <option value="template-2">Moderna</option>
+      </select>
+    </div>
+    <div class="cv-preview" id="cv-output"></div>
+  </div>
+
+</div>
+
+<script src="script-utils.js"></script>
+<script src="script-ui.js"></script>
+<script src="script.js"></script>
+
+</body>
+<!-- Modal root for dynamic dialogs -->
+<div id="modal-root"></div>
+</html>

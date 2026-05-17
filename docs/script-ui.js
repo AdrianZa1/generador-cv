@@ -1174,6 +1174,21 @@ function sync() {
       </div>`;
   }
 
+  // Force inline visible styles on generated template to avoid theme/cached CSS hiding it
+  try {
+    const tplEl = output.querySelector('.cv-template');
+    if (tplEl) {
+      tplEl.style.background = '#ffffff';
+      tplEl.style.color = '#0f1723';
+      tplEl.style.padding = '18px';
+      tplEl.style.minHeight = '180px';
+      tplEl.style.boxSizing = 'border-box';
+      tplEl.style.boxShadow = '0 6px 18px rgba(0,0,0,0.06)';
+      tplEl.style.display = 'block';
+      tplEl.style.margin = '0 auto';
+    }
+  } catch (e) { console.warn('Could not apply inline preview styles', e); }
+
   if (tutorialState && tutorialState.active && tutorialState.steps[tutorialState.step]?.selector === '.cv-name') {
     const previewName = output.querySelector('.cv-name');
     if (previewName) previewName.classList.add('tutorial-preview-focus');

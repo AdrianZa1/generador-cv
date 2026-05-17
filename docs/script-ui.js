@@ -335,46 +335,53 @@ function autoFormatPeriod(el) {
   }
 }
 
+function normalizeImprovedText(text) {
+  return String(text || '')
+    .replace(/\s+/g, ' ')
+    .replace(/\s+\./g, '.')
+    .replace(/\.\.+/g, '.')
+    .trim();
+}
+
+async function rewriteTextFormal(originalText, contextPrompt) {
+  const currentText = normalizeImprovedText(originalText);
+  if (!currentText) return '';
+
+  const systemPrompt = 'Eres un asistente experto en redacción de CV en español. Reescribe el texto en un tono más formal, claro y profesional, sin cambiar el significado. Devuelve solo el texto final.';
+  const userPrompt = `${contextPrompt}\n\nTexto original:\n${currentText}`;
+
+  try {
+    const rewritten = await callOpenAI(systemPrompt, userPrompt);
+    const cleaned = normalizeImprovedText(rewritten);
+    return cleaned || currentText;
+  } catch (err) {
+    console.error('rewriteTextFormal error', err);
+    return currentText;
+  }
+}
+
 function improveEntryDesc(id) {
-  // For now, reuse the create flow but prefill with existing desc to help improve
   const entry = entries.exp.find(x => x.id === id);
   if (!entry) return showMessageModal('Entrada no encontrada', { title: 'Error' });
-  const questions = [
-    { q: `¿Cuál era tu responsabilidad principal en ${entry.role || 'este puesto'}?`, placeholder: 'Describe brevemente responsabilidades' },
-    { q: 'Menciona un logro clave que quieras destacar', placeholder: 'Ej: incrementé ventas, organicé procesos, mejoré atención' },
-    { q: '¿Qué herramientas, recursos o métodos usaste?', placeholder: 'Ej: Excel, atención al cliente, maquinaria, software' },
-    { q: '¿Qué impacto tuvo tu trabajo en el equipo o área?', placeholder: 'Ej: mejoré tiempos, reduje errores, aumenté productividad' },
-    { q: 'Resumen final en una frase', placeholder: 'Una frase concisa sobre tu rol' }
-  ];
-  showQuestionModal({ title: 'Mejorar descripción', intro: 'Responder 5 preguntas para generar el texto.', questions }, (answers) => {
-    showConfirmModal('¿Quieres que la IA genere la descripción? (recomendado)', async (useAI) => {
-      if (useAI) {
-        // ensure key
-        const proceedWithAI = async () => {
-          const wait = showWaitingModal('Generando con IA...');
-          try {
-            const system = 'Eres un asistente que genera descripciones profesionales para CV en español. Mantén máximo 150 palabras.';
-            const userPrompt = `Contexto: experiencia en ${entry.company||''} como ${entry.role||''}. Respuestas: ${answers.join(' | ')}`;
-            let out = await callOpenAI(system, userPrompt);
-            out = truncateWords(out, 150);
-            if (!out) out = generateTextFromAnswers('exp', answers, { company: entry.company, role: entry.role });
-            entry.desc = out;
-            renderEntries('exp'); sync(); showMessageModal('Descripción mejorada y aplicada', { title: 'Hecho' });
-          } catch (err) {
-            console.error(err);
-            const fallback = generateTextFromAnswers('exp', answers, { company: entry.company, role: entry.role });
-            entry.desc = fallback; renderEntries('exp'); sync(); showMessageModal('No se pudo usar la IA, se aplicó una descripción generada localmente', { title: 'Aviso' });
-          } finally { try { wait.close(); } catch(e){} }
-        };
-        if (!getAIKey()) {
-          promptForApiKey((k) => { if (k) proceedWithAI(); else showMessageModal('Clave no guardada, usando generación local.', { title: 'Aviso' }); });
-        } else proceedWithAI();
-      } else {
-        const gen = generateTextFromAnswers('exp', answers, { company: entry.company, role: entry.role });
-        entry.desc = gen; renderEntries('exp'); sync(); showMessageModal('Descripción mejorada y aplicada', { title: 'Hecho' });
-      }
-    });
-  });
+  const existingText = normalizeImprovedText(entry.desc);
+  if (!existingText) {
+    showMessageModal('Primero escribe una descripción en el campo y luego presiona Mejorar.', { title: 'Falta texto' });
+    return;
+  }
+
+  const wait = showWaitingModal('Mejorando descripción...');
+  rewriteTextFormal(existingText, `Reescribe una descripción de experiencia laboral para un CV. Mantén el rol ${entry.role || 'del puesto'} y la empresa ${entry.company || 'indicada'} en un tono formal y profesional.`)
+    .then(out => {
+      entry.desc = out;
+      renderEntries('exp');
+      sync();
+      showMessageModal('Descripción mejorada y aplicada', { title: 'Hecho' });
+    })
+    .catch(err => {
+      console.error(err);
+      showMessageModal('No se pudo mejorar el texto.', { title: 'Aviso' });
+    })
+    .finally(() => { try { wait.close(); } catch(e){} });
 }
 
 function createEntryDesc(id) {
@@ -458,43 +465,25 @@ function createBioInteractive() {
 
 function improveBioInteractive() {
   const current = (document.getElementById('f-bio')||{}).value || '';
-  const questions = [
-    { q: '¿Qué aspecto de tu resumen quieres mejorar?', placeholder: 'Ej: hacerlo más claro, breve o convincente' },
-    { q: 'Menciona 1-2 logros o actividades recientes que quieras incluir', placeholder: 'Ej: coordiné un evento, atendí clientes, optimicé un proceso' },
-    { q: '¿Qué habilidades o fortalezas quieres enfatizar?', placeholder: 'Ej: liderazgo, organización, empatía' },
-    { q: '¿Cuál es tu objetivo profesional principal ahora?', placeholder: 'Ej: crecer en mi área y asumir más responsabilidades' },
-    { q: 'Frase final que te gustaría que aparezca', placeholder: 'Ej: orientado a resultados y colaboración' }
-  ];
-  showQuestionModal({ title: 'Mejorar resumen profesional', intro: '5 preguntas para mejorar tu resumen actual.', questions }, (answers) => {
-    showConfirmModal('¿Quieres que la IA genere tu resumen profesional mejorado? (recomendado)', async (useAI) => {
-      if (useAI) {
-        const proceedWithAI = async () => {
-          const wait = showWaitingModal('Generando con IA...');
-          try {
-            const system = 'Eres un asistente que genera resúmenes profesionales para CV en español. Mantén máximo 150 palabras.';
-            const userPrompt = `Perfil (mejora): respuestas: ${answers.join(' | ')}`;
-            let out = await callOpenAI(system, userPrompt);
-            out = truncateWords(out, 150);
-            if (!out) out = generateTextFromAnswers('profile', answers);
-            const bioEl = document.getElementById('f-bio'); if (bioEl) bioEl.value = out || current;
-            sync(); showMessageModal('Resumen mejorado e insertado', { title: 'Hecho' });
-          } catch (err) {
-            console.error(err);
-            const fallback = generateTextFromAnswers('profile', answers);
-            const bioEl = document.getElementById('f-bio'); if (bioEl) bioEl.value = fallback || current;
-            sync(); showMessageModal('No se pudo usar la IA, se aplicó una descripción generada localmente', { title: 'Aviso' });
-          } finally { try { wait.close(); } catch(e){} }
-        };
-        if (!getAIKey()) {
-          promptForApiKey((k) => { if (k) proceedWithAI(); else showMessageModal('Clave no guardada, usando generación local.', { title: 'Aviso' }); });
-        } else proceedWithAI();
-      } else {
-        const gen = generateTextFromAnswers('profile', answers);
-        const bioEl = document.getElementById('f-bio'); if (bioEl) bioEl.value = gen || current;
-        sync(); showMessageModal('Resumen mejorado e insertado', { title: 'Hecho' });
-      }
-    });
-  });
+  const existingText = normalizeImprovedText(current);
+  if (!existingText) {
+    showMessageModal('Primero escribe un resumen en el campo y luego presiona Mejorar.', { title: 'Falta texto' });
+    return;
+  }
+
+  const wait = showWaitingModal('Mejorando resumen...');
+  rewriteTextFormal(existingText, 'Reescribe este resumen profesional para un CV. Hazlo más formal, claro y convincente, sin cambiar el contenido esencial.')
+    .then(out => {
+      const bioEl = document.getElementById('f-bio');
+      if (bioEl) bioEl.value = out || current;
+      sync();
+      showMessageModal('Resumen mejorado e insertado', { title: 'Hecho' });
+    })
+    .catch(err => {
+      console.error(err);
+      showMessageModal('No se pudo mejorar el texto.', { title: 'Aviso' });
+    })
+    .finally(() => { try { wait.close(); } catch(e){} });
 }
 
 function updateEntryText(type, id, field, el) {

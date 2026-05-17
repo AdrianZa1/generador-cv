@@ -1,5 +1,7 @@
-// Frontend helper: backend URL from meta tag
-const BACKEND_URL = document.querySelector('meta[name="backend-url"]')?.content || '';
+// Frontend helper: backend URL from meta tag (define only if not defined)
+if (typeof BACKEND_URL === 'undefined') {
+  var BACKEND_URL = document.querySelector('meta[name="backend-url"]')?.content || '';
+}
 
 // ===================== CONTROLADOR PRINCIPAL =====================
 function initInputListeners() {

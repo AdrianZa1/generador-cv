@@ -137,12 +137,26 @@ function focusTutorialTarget(selector) {
   return el;
 }
 
+function isMobileViewport() {
+  return window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
+}
+
 function startIntroTour() {
+  const mobile = isMobileViewport();
   tutorialState = {
     active: true,
     step: 0,
     steps: [
-      { selector: '#f-name', hint: '<strong>Paso 1.</strong> Escribe aquí tu nombre y presiona Enter.', focusPage: 1, placement: 'bottom' },
+      {
+        selector: '#f-name',
+        hint: mobile
+          ? '<strong>Paso 1.</strong> Escribe tu nombre y presiona <strong>Siguiente</strong>.'
+          : '<strong>Paso 1.</strong> Escribe aquí tu nombre y presiona Enter.',
+        focusPage: 1,
+        placement: 'bottom',
+        showNextButton: mobile,
+        nextLabel: 'Siguiente'
+      },
       { selector: '.cv-name', hint: '<strong>Paso 2.</strong> Aquí se muestra automáticamente tu nombre en la plantilla.', placement: 'right', showNextButton: true, nextLabel: 'Siguiente', autoAdvanceAfter: 123000 },
       { selector: '#download-pdf', hint: '<strong>Último paso.</strong> Una vez completada tu plantilla, puedes descargarla en el botón Descargar PDF.', placement: 'bottom', focusPage: 1 }
     ]

@@ -1178,6 +1178,10 @@ function sync() {
     const previewName = output.querySelector('.cv-name');
     if (previewName) previewName.classList.add('tutorial-preview-focus');
   }
+  // Debugging: log when sync runs and size of generated HTML
+  try {
+    console.log('sync() executed — preview length:', output ? (output.innerHTML || '').length : 0);
+  } catch (e) { /* ignore */ }
 }
 
 function boot() {

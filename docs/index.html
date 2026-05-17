@@ -36,6 +36,8 @@
     @media (max-width:720px) {
       .bio-actions .add-btn { width:100%; }
     }
+    /* Make bio textarea larger to match desired proportions */
+    .bio-textarea { flex:1; min-height:140px; max-height:420px; resize:vertical; padding:12px; font-size:14px; line-height:1.4 }
   </style>
 </head>
 <body>
@@ -124,7 +126,7 @@
 
       <div class="field-row full">
           <div style="display:flex; gap:8px; align-items:flex-start; width:100%">
-          <textarea id="f-bio" placeholder="Breve descripción de tu experiencia y objetivos..." style="flex:1"></textarea>
+          <textarea id="f-bio" class="bio-textarea" placeholder="Breve descripción de tu experiencia y objetivos..."></textarea>
           <div class="bio-actions">
             <button class="add-btn icon-left" id="btn-improve-bio" type="button" title="Reescribe y mejora el texto que ya escribiste"><span class="btn-icon">✨</span>Mejorar</button>
             <button class="add-btn icon-left" id="btn-create-bio" type="button" title="Genera un texto sugerido automáticamente" aria-label="Generar resumen profesional"><span class="btn-icon">⚡</span>Generar</button>

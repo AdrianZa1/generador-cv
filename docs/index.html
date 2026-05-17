@@ -28,6 +28,9 @@
     .cv-bio, .cv-entry-desc, .cv-meta, .cv-skill-tag, .cv-entry-sub, .cv-references-list {
       font-size: 10px !important;
     }
+    .bio-actions { display:flex; flex-direction:column; gap:6px }
+    .bio-actions .btn-icon { margin-right:8px; font-size:14px }
+    .add-btn.icon-left { display:inline-flex; align-items:center }
   </style>
 </head>
 <body>
@@ -115,11 +118,12 @@
       <div class="section-heading">Resumen profesional</div>
 
       <div class="field-row full">
-        <div style="display:flex; gap:8px; align-items:flex-start; width:100%">
+          <div style="display:flex; gap:8px; align-items:flex-start; width:100%">
           <textarea id="f-bio" placeholder="Breve descripción de tu experiencia y objetivos..." style="flex:1"></textarea>
-          <div style="display:flex; align-items:flex-start; flex-direction:column; gap:6px">
-            <button class="add-btn" id="btn-improve-bio" type="button">Mejorar</button>
-            <button class="add-btn" id="btn-create-bio" type="button">Crear</button>
+          <div class="bio-actions">
+            <button class="add-btn icon-left" id="btn-improve-bio" type="button" title="Reescribe y mejora el texto que ya escribiste"><span class="btn-icon">✨</span>Mejorar</button>
+            <button class="add-btn icon-left" id="btn-create-bio" type="button" title="Genera un texto sugerido automáticamente" aria-label="Generar resumen profesional"><span class="btn-icon">⚡</span>Generar</button>
+            <div style="font-size:12px; color:#666; margin-top:6px;">¿No sabes por dónde empezar? Usa <strong>Generar</strong> para obtener un texto sugerido o <strong>Mejorar</strong> para perfeccionar el que tengas.</div>
           </div>
         </div>
       </div>

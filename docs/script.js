@@ -27,10 +27,36 @@ function initInputListeners() {
   });
 
   // Listeners estáticos
-  ['f-cedula', 'f-dob'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener('input', sync);
-  });
+  const cedulaEl = document.getElementById('f-cedula');
+  if (cedulaEl) {
+    cedulaEl.setAttribute('inputmode', 'numeric');
+    cedulaEl.setAttribute('maxlength', '10');
+    cedulaEl.addEventListener('input', () => { sanitizeCedulaInput(cedulaEl); clearFieldError('f-cedula'); sync(); });
+    cedulaEl.addEventListener('blur', () => { sanitizeCedulaInput(cedulaEl); validateCedula(); sync(); });
+  }
+
+  const dobTextEl = document.getElementById('f-dob');
+  const dobPickerEl = document.getElementById('f-dob-picker');
+  const dobPickerBtn = document.getElementById('f-dob-picker-btn');
+  if (dobTextEl) {
+    dobTextEl.setAttribute('inputmode', 'numeric');
+    dobTextEl.setAttribute('maxlength', '10');
+    dobTextEl.addEventListener('input', () => {
+      dobTextEl.value = formatDateIsoInput(dobTextEl.value);
+      syncDobPicker();
+      clearFieldError('f-dob');
+      sync();
+    });
+    dobTextEl.addEventListener('blur', () => { validateDob(); syncDobPicker(); sync(); });
+  }
+  if (dobPickerEl) {
+    dobPickerEl.addEventListener('change', () => {
+      if (dobTextEl) dobTextEl.value = dobPickerEl.value || '';
+      clearFieldError('f-dob');
+      sync();
+    });
+  }
+  if (dobPickerBtn) dobPickerBtn.addEventListener('click', openDobPicker);
 
   const skillInp = document.getElementById('f-skill');
   if (skillInp) skillInp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addSkill(); } });
@@ -43,7 +69,12 @@ function initInputListeners() {
     if (emailEl) emailEl.addEventListener('keydown', e => { if (e.key === 'Enter' && tutorialState && tutorialState.active && tutorialState.steps[tutorialState.step]?.selector === '#f-email') { e.preventDefault(); advanceTutorial(); } });
 
     const phoneEl = document.getElementById('f-phone');
-    if (phoneEl) phoneEl.addEventListener('keydown', e => { if (e.key === 'Enter' && tutorialState && tutorialState.active && tutorialState.steps[tutorialState.step]?.selector === '#f-phone') { e.preventDefault(); advanceTutorial(); } });
+    if (phoneEl) {
+      phoneEl.setAttribute('inputmode', 'tel');
+      phoneEl.addEventListener('input', () => { sanitizePhoneInput(phoneEl); clearFieldError('f-phone'); sync(); });
+      phoneEl.addEventListener('blur', () => { sanitizePhoneInput(phoneEl); validatePhone(); sync(); });
+      phoneEl.addEventListener('keydown', e => { if (e.key === 'Enter' && tutorialState && tutorialState.active && tutorialState.steps[tutorialState.step]?.selector === '#f-phone') { e.preventDefault(); advanceTutorial(); } });
+    }
 
     const locationEl = document.getElementById('f-location');
     if (locationEl) locationEl.addEventListener('keydown', e => { if (e.key === 'Enter' && tutorialState && tutorialState.active && tutorialState.steps[tutorialState.step]?.selector === '#f-location') { e.preventDefault(); advanceTutorial(); } });

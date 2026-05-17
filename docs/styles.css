@@ -41,6 +41,42 @@ header h1 {
   height: calc(100vh - 60px);
 }
 
+@media (max-width: 768px) {
+  header {
+    padding: 0.9rem 1rem;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  header h1 {
+    font-size: 18px;
+    line-height: 1.2;
+  }
+
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    height: auto;
+  }
+
+  .panel-form {
+    order: 1;
+  }
+
+  .panel-preview {
+    order: 2;
+  }
+
+  .panel-form,
+  .panel-preview {
+    min-height: auto;
+  }
+
+  .panel-preview {
+    padding-top: 1rem;
+  }
+}
+
 /* Modal & button improvements */
 .modal-overlay {
   position: fixed;
@@ -332,3 +368,9 @@ textarea {
   gap: 6px;
   align-items: center;
 }
+
+/* Palette selector */
+.palette-container { display:flex; gap:8px; align-items:center; }
+.palette-swatch { width:20px; height:20px; border-radius:6px; border:2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.08); cursor:pointer; }
+.palette-swatch.selected { outline: 3px solid rgba(0,0,0,0.06); transform: translateY(-2px); }
+.palette-label { font-size:12px; color:#666; margin-left:8px; }

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Generador de CV Profesional</title>
-  <meta name="backend-url" content="">
+  <meta name="backend-url" content="https://generadorbackend.onrender.com">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="styles-form.css">
@@ -86,14 +86,23 @@
         </div>
         <div>
           <label>Cédula / ID</label>
-          <input type="text" id="f-cedula" placeholder="1712345678">
+          <input type="text" id="f-cedula" placeholder="1712345678" inputmode="numeric" autocomplete="off" maxlength="10" pattern="[0-9]*">
+          <div class="error-text" id="err-cedula" style="display:none"></div>
         </div>
       </div>
 
       <div class="field-row">
-        <div>
+        <div class="date-field">
           <label>Fecha de nacimiento</label>
-          <input type="date" id="f-dob">
+          <div class="date-input-wrap">
+            <input type="text" id="f-dob" placeholder="AAAA-MM-DD" inputmode="numeric" autocomplete="bday" maxlength="10">
+            <button type="button" class="date-picker-btn" id="f-dob-picker-btn" aria-label="Abrir calendario">
+              <i class="ti ti-calendar-event"></i>
+            </button>
+            <input type="date" id="f-dob-picker" class="date-picker-native" aria-hidden="true" tabindex="-1">
+          </div>
+          <div class="section-help">Escribe la fecha como AAAA-MM-DD o usa el calendario.</div>
+          <div class="error-text" id="err-dob" style="display:none"></div>
         </div>
       </div>
 

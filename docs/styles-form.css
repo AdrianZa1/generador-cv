@@ -59,6 +59,53 @@ input[type="text"], input[type="email"], input[type="tel"], textarea {
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
+.date-field { width: 100%; }
+
+.date-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+
+.date-input-wrap input[type="text"] {
+  padding-right: 44px;
+}
+
+.date-picker-btn {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--primary-600);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.date-picker-btn:hover {
+  background: rgba(22,163,74,0.08);
+}
+
+.date-picker-native {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.section-help {
+  font-size: 11px;
+  color: #6b746d;
+  margin-top: 4px;
+  line-height: 1.35;
+}
+
 input:focus, textarea:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(22,163,74,0.12);
@@ -109,4 +156,13 @@ input:focus, textarea:focus {
 
 .input-error { border-color: #e53e3e !important; box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.08); }
 .error-text { color: #e53e3e; font-size: 12px; margin-top: 6px; }
-@media (max-width: 768px) { .panel-form { border-right: none; border-bottom: 1px solid #e0e0e0; } }
+@media (max-width: 768px) {
+  .panel-form {
+    border-right: none;
+    border-bottom: 1px solid #e0e0e0;
+  }
+
+  .date-input-wrap input[type="text"] {
+    font-size: 16px;
+  }
+}

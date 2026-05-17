@@ -1002,6 +1002,74 @@ function validatePhone() {
   return ok;
 }
 
+function sanitizeCedulaInput(el) {
+  if (!el) return;
+  const next = String(el.value || '').replace(/\D/g, '').slice(0, 10);
+  if (next !== el.value) el.value = next;
+}
+
+function sanitizePhoneInput(el) {
+  if (!el) return;
+  const next = String(el.value || '').replace(/[^0-9+\s()-]/g, '');
+  if (next !== el.value) el.value = next;
+}
+
+function formatDateIsoInput(value) {
+  const digits = String(value || '').replace(/\D/g, '').slice(0, 8);
+  if (!digits) return '';
+  const year = digits.slice(0, 4);
+  const month = digits.slice(4, 6);
+  const day = digits.slice(6, 8);
+  if (digits.length <= 4) return year;
+  if (digits.length <= 6) return `${year}-${month}`;
+  return `${year}-${month}-${day}`;
+}
+
+function isIsoDate(value) {
+  if (!value) return true;
+  return /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function syncDobPicker() {
+  const textEl = document.getElementById('f-dob');
+  const pickerEl = document.getElementById('f-dob-picker');
+  if (!textEl || !pickerEl) return;
+  pickerEl.value = isIsoDate(textEl.value.trim()) ? textEl.value.trim() : '';
+}
+
+function validateCedula() {
+  const el = document.getElementById('f-cedula');
+  const err = document.getElementById('err-cedula');
+  if (!el) return true;
+  const v = el.value.trim();
+  const ok = v === '' || /^\d{10}$/.test(v);
+  if (err) { err.style.display = ok ? 'none' : ''; err.textContent = ok ? '' : 'La cédula debe tener 10 dígitos numéricos.'; }
+  el.classList.toggle('input-error', !ok);
+  return ok;
+}
+
+function validateDob() {
+  const el = document.getElementById('f-dob');
+  const err = document.getElementById('err-dob');
+  if (!el) return true;
+  const v = el.value.trim();
+  const ok = isIsoDate(v);
+  if (err) { err.style.display = ok ? 'none' : ''; err.textContent = ok ? '' : 'Usa el formato AAAA-MM-DD.'; }
+  el.classList.toggle('input-error', !ok);
+  return ok;
+}
+
+function openDobPicker() {
+  const pickerEl = document.getElementById('f-dob-picker');
+  if (!pickerEl) return;
+  if (typeof pickerEl.showPicker === 'function') {
+    pickerEl.showPicker();
+    return;
+  }
+  pickerEl.focus();
+  pickerEl.click();
+}
+
 function showPage(n) {
   const p1 = document.getElementById('form-page-1'), p2 = document.getElementById('form-page-2');
   if (n === 2) {
@@ -1011,6 +1079,9 @@ function showPage(n) {
     if (!titleVal) { showFieldError('f-title', 'Completa tu título profesional.'); firstMissing = firstMissing || 'f-title'; }
     if (firstMissing) { const el = document.getElementById(firstMissing); if (el) el.focus(); return; }
     if (!validateEmail()) return;
+    if (!validatePhone()) return;
+    if (!validateCedula()) return;
+    if (!validateDob()) return;
   }
   p1.style.display = n === 1 ? '' : 'none';
   p2.style.display = n === 2 ? '' : 'none';

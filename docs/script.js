@@ -380,13 +380,47 @@ async function generateTextPDF(tpl, waitModal) {
   // Guardar
   const basePdfBytes = pdf.output('arraybuffer');
   const attachments = (entries.portfolio || []).filter(item => item.fileData && item.fileType === 'application/pdf');
+  if (attachments.length) {
+    // Prefer server-side merge if backend is configured
+    if (BACKEND_URL) {
+      try {
+        const url = (BACKEND_URL || '') + '/merge-pdfs';
+        // convert basePdfBytes (ArrayBuffer) to base64
+        function arrayBufferToBase64(buffer) {
+          let binary = '';
+          const bytes = new Uint8Array(buffer);
+          const len = bytes.byteLength;
+          for (let i = 0; i < len; i++) binary += String.fromCharCode(bytes[i]);
+          return btoa(binary);
+        }
+        const payload = {
+          basePdf: arrayBufferToBase64(basePdfBytes),
+          attachments: attachments.map(a => ({ fileName: a.fileName, fileData: a.fileData }))
+        };
+        const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (r.ok) {
+          const blob = await r.blob();
+          const urlBlob = URL.createObjectURL(blob);
+          const a = document.createElement('a'); a.href = urlBlob; a.download = 'Mi_CV_con_adjuntos.pdf'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(urlBlob);
+          if (waitModal && typeof waitModal.close === 'function') waitModal.close();
+          return;
+        }
+        console.warn('Server merge failed, falling back to client merge', await r.text());
+      } catch (e) {
+        console.error('Server merge-pdfs error', e);
+      }
+    }
 
-  if (attachments.length && window.PDFLib && window.PDFLib.PDFDocument) {
-    try {
-      const merged = await mergePdfAttachments(basePdfBytes, attachments);
-      savePdfBytes(merged, 'Mi_CV.pdf');
-    } catch (err) {
-      console.error('No se pudieron anexar los PDFs', err);
+    // Fallback: try client-side merge (pdf-lib in browser)
+    if (window.PDFLib && window.PDFLib.PDFDocument) {
+      try {
+        const merged = await mergePdfAttachments(basePdfBytes, attachments);
+        savePdfBytes(merged, 'Mi_CV.pdf');
+      } catch (err) {
+        console.error('No se pudieron anexar los PDFs', err);
+        savePdfBytes(basePdfBytes, 'Mi_CV.pdf');
+      }
+    } else {
       savePdfBytes(basePdfBytes, 'Mi_CV.pdf');
     }
   } else {
@@ -397,20 +431,30 @@ async function generateTextPDF(tpl, waitModal) {
 
 async function mergePdfAttachments(basePdfBytes, attachments) {
   const { PDFDocument } = window.PDFLib;
-  const pdfDoc = await PDFDocument.load(basePdfBytes);
+  // Create a new PDF and import pages from the base PDF first,
+  // then append pages from each attachment in the provided order.
+  const newPdf = await PDFDocument.create();
+
+  try {
+    const baseDoc = await PDFDocument.load(basePdfBytes);
+    const basePages = await newPdf.copyPages(baseDoc, baseDoc.getPageIndices());
+    basePages.forEach(p => newPdf.addPage(p));
+  } catch (err) {
+    console.error('No se pudo leer el PDF base', err);
+  }
 
   for (const item of attachments) {
     try {
       const attachmentBytes = dataUrlToUint8Array(item.fileData);
       const attachmentDoc = await PDFDocument.load(attachmentBytes);
-      const pages = await pdfDoc.copyPages(attachmentDoc, attachmentDoc.getPageIndices());
-      pages.forEach(page => pdfDoc.addPage(page));
+      const pages = await newPdf.copyPages(attachmentDoc, attachmentDoc.getPageIndices());
+      pages.forEach(p => newPdf.addPage(p));
     } catch (err) {
       console.error('No se pudo anexar el PDF adjunto', err, item.fileName);
     }
   }
 
-  return pdfDoc.save();
+  return newPdf.save();
 }
 
 function boot() {

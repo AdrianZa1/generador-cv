@@ -7,6 +7,16 @@
 
 .cv-preview { max-width: 560px; margin: 0 auto; min-height: 420px; border: 1px solid rgba(0,0,0,0.04); padding: 12px; border-radius:6px; background: transparent }
 
+/* Debug placeholder when preview is empty (helps identify JS/CSS issues) */
+.cv-preview:empty::before {
+  content: 'Vista previa (vacía) — si no ves contenido, abre DevTools → Console';
+  display: block;
+  color: #9aa3a0;
+  text-align: center;
+  padding: 28px 12px;
+  font-size: 14px;
+}
+
 /* Template 2 (Moderna) */
 .cv-template.template-2 {
   display: grid;

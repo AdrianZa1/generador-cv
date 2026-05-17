@@ -28,7 +28,7 @@
     .cv-bio, .cv-entry-desc, .cv-meta, .cv-skill-tag, .cv-entry-sub, .cv-references-list {
       font-size: 10px !important;
     }
-    .bio-actions { display:flex; flex-direction:column; gap:6px; align-items:flex-start }
+    .bio-actions { display:flex; flex-direction:column; gap:6px; align-items:flex-start; width:160px; flex-shrink:0 }
     .bio-actions .btn-icon { margin-right:6px; font-size:14px }
     .add-btn.icon-left { display:inline-flex; align-items:center }
     /* Keep buttons compact and visually aligned with the textarea */
@@ -37,7 +37,7 @@
       .bio-actions .add-btn { width:100%; }
     }
     /* Make bio textarea larger to match desired proportions */
-    .bio-textarea { flex:1; min-height:140px; max-height:420px; resize:vertical; padding:12px; font-size:14px; line-height:1.4 }
+    .bio-textarea { flex:1 1 auto; min-height:140px; max-height:420px; resize:vertical; padding:12px; font-size:14px; line-height:1.4; width:auto }
   </style>
 </head>
 <body>

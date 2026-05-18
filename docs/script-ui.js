@@ -137,12 +137,17 @@ function focusTutorialTarget(selector) {
   return el;
 }
 
+function isMobileTourMode() {
+  return window.innerWidth <= 768 || (navigator && navigator.maxTouchPoints > 0);
+}
+
 function startIntroTour() {
+  const mobileMode = isMobileTourMode();
   tutorialState = {
     active: true,
     step: 0,
     steps: [
-      { selector: '#f-name', hint: '<strong>Paso 1.</strong> Escribe aquí tu nombre y presiona Enter.', focusPage: 1, placement: 'bottom' },
+      { selector: '#f-name', hint: mobileMode ? '<strong>Paso 1.</strong> Escribe aquí tu nombre y presiona Siguiente.' : '<strong>Paso 1.</strong> Escribe aquí tu nombre y presiona Enter.', focusPage: 1, placement: 'bottom', showNextButton: mobileMode, nextLabel: 'Siguiente' },
       { selector: '.cv-name', hint: '<strong>Paso 2.</strong> Aquí se muestra automáticamente tu nombre en la plantilla.', placement: 'right', showNextButton: true, nextLabel: 'Siguiente', autoAdvanceAfter: 123000 },
       { selector: '#download-pdf', hint: '<strong>Último paso.</strong> Una vez completada tu plantilla, puedes descargarla en el botón Descargar PDF.', placement: 'bottom', focusPage: 1 }
     ]
@@ -169,7 +174,7 @@ function showTutorialStep(stepIndex) {
   setTutorialHint('');
   const el = focusTutorialTarget(step.selector);
   if (step.selector === '#f-name' && el) {
-    el.setAttribute('placeholder', 'Escribe tu nombre aquí y presiona Enter');
+    el.setAttribute('placeholder', step.showNextButton ? 'Escribe tu nombre aquí y presiona Siguiente' : 'Escribe tu nombre aquí y presiona Enter');
   }
   if (el) {
     positionTutorialCallout(el, step.hint, {
@@ -452,44 +457,37 @@ function createBioInteractive() {
 }
 
 function improveBioInteractive() {
-  const current = (document.getElementById('f-bio')||{}).value || '';
-  const questions = [
-    { q: '¿Qué aspecto de tu resumen quieres mejorar?', placeholder: 'Ej: hacerlo más claro, breve o convincente' },
-    { q: 'Menciona 1-2 logros o actividades recientes que quieras incluir', placeholder: 'Ej: coordiné un evento, atendí clientes, optimicé un proceso' },
-    { q: '¿Qué habilidades o fortalezas quieres enfatizar?', placeholder: 'Ej: liderazgo, organización, empatía' },
-    { q: '¿Cuál es tu objetivo profesional principal ahora?', placeholder: 'Ej: crecer en mi área y asumir más responsabilidades' },
-    { q: 'Frase final que te gustaría que aparezca', placeholder: 'Ej: orientado a resultados y colaboración' }
-  ];
-  showQuestionModal({ title: 'Mejorar resumen profesional', intro: '5 preguntas para mejorar tu resumen actual.', questions }, (answers) => {
-    showConfirmModal('¿Quieres que la IA genere tu resumen profesional mejorado? (recomendado)', async (useAI) => {
-      if (useAI) {
-        const proceedWithAI = async () => {
-          const wait = showWaitingModal('Generando con IA...');
-          try {
-            const system = 'Eres un asistente que genera resúmenes profesionales para CV en español. Mantén máximo 150 palabras.';
-            const userPrompt = `Perfil (mejora): respuestas: ${answers.join(' | ')}`;
-            let out = await callOpenAI(system, userPrompt);
-            out = truncateWords(out, 150);
-            if (!out) out = generateTextFromAnswers('profile', answers);
-            const bioEl = document.getElementById('f-bio'); if (bioEl) bioEl.value = out || current;
-            sync(); showMessageModal('Resumen mejorado e insertado', { title: 'Hecho' });
-          } catch (err) {
-            console.error(err);
-            const fallback = generateTextFromAnswers('profile', answers);
-            const bioEl = document.getElementById('f-bio'); if (bioEl) bioEl.value = fallback || current;
-            sync(); showMessageModal('No se pudo usar la IA, se aplicó una descripción generada localmente', { title: 'Aviso' });
-          } finally { try { wait.close(); } catch(e){} }
-        };
-        if (!getAIKey()) {
-          promptForApiKey((k) => { if (k) proceedWithAI(); else showMessageModal('Clave no guardada, usando generación local.', { title: 'Aviso' }); });
-        } else proceedWithAI();
-      } else {
-        const gen = generateTextFromAnswers('profile', answers);
-        const bioEl = document.getElementById('f-bio'); if (bioEl) bioEl.value = gen || current;
-        sync(); showMessageModal('Resumen mejorado e insertado', { title: 'Hecho' });
-      }
-    });
-  });
+  // Mejora inmediata y silenciosa del texto del resumen profesional.
+  const bioEl = document.getElementById('f-bio');
+  if (!bioEl) return;
+  const current = bioEl.value || '';
+  if (!current.trim()) { showMessageModal('El resumen está vacío. Escribe algo y vuelve a intentar.', { title: 'Aviso' }); return; }
+
+  const tryLocal = (replacement) => {
+    const improved = replacement || localImproveBio(current);
+    // Animar escritura y actualizar
+    animateTextareaTyping(bioEl, improved, () => {} ).then(() => { sync(); showMessageModal('Resumen mejorado', { title: 'Listo' }); });
+  };
+
+  // Si hay clave de IA, usarla automáticamente; si no, usar mejora local.
+  if (typeof getAIKey === 'function' && getAIKey()) {
+    const wait = showWaitingModal('Mejorando con IA...');
+    (async () => {
+      try {
+        const system = 'Eres un asistente que mejora y formaliza resúmenes profesionales en español. Mantén máximo 150 palabras y lenguaje formal.';
+        const userPrompt = `Mejora este resumen profesional, mantén el sentido pero hazlo más formal y profesional. Texto: "${current}"`;
+        let out = await callOpenAI(system, userPrompt);
+        out = (typeof truncateWords === 'function') ? truncateWords(out, 150) : out;
+        if (!out || !out.trim()) throw new Error('IA no devolvió texto');
+        tryLocal(out.trim());
+      } catch (err) {
+        console.error('IA mejora fallida:', err);
+        tryLocal();
+      } finally { try { wait.close(); } catch(e){} }
+    })();
+  } else {
+    tryLocal();
+  }
 }
 
 function updateEntryText(type, id, field, el) {
@@ -580,55 +578,20 @@ function editLanguage(idx) {
 function addPortfolio() {
   const titleEl = document.getElementById('f-portfolio-title');
   const linkEl = document.getElementById('f-portfolio-link');
-  const typeEl = document.getElementById('f-portfolio-type');
-  const fileEl = document.getElementById('f-portfolio-file');
-  if (!typeEl) return;
-  const rawType = typeEl.value.trim();
-  if (!rawType) {
-    showMessageModal('Primero selecciona el tipo de adjunto.', { title: 'Falta el tipo' });
-    return;
-  }
   const title = titleEl ? titleEl.value.trim() : '';
   const link = linkEl ? linkEl.value.trim() : '';
-  const type = rawType;
-  const file = fileEl && fileEl.files ? fileEl.files[0] : null;
-  if (!title && !link && !file) return;
-  if (type === 'portafolio web' && !link) {
+  if (!title && !link) return;
+  if (!link) {
     showMessageModal('Para portafolio web, agrega el enlace.', { title: 'Falta el enlace' });
     return;
   }
-  if (type === 'certificado' && !file) {
-    showMessageModal('Para certificado, sube el archivo PDF.', { title: 'Falta el archivo' });
-    return;
-  }
-  if (type === 'proyecto' && !link && !file) {
-    showMessageModal('Para proyecto, agrega un enlace o sube un archivo.', { title: 'Falta información' });
-    return;
-  }
-  if (type === 'evidencia' && !file) {
-    showMessageModal('Para evidencia de trabajo, sube una imagen o PDF.', { title: 'Falta el archivo' });
-    return;
-  }
-  const addItem = (fileData = null, fileName = '', fileType = '') => {
-    entries.portfolio.push({ id: ++counters.portfolio, type, title, link, fileData, fileName, fileType });
+  const addItem = () => {
+    entries.portfolio.push({ id: ++counters.portfolio, type: 'portafolio web', title, link, fileData: '', fileName: '', fileType: '' });
     if (titleEl) titleEl.value = '';
     if (linkEl) linkEl.value = '';
-    if (fileEl) fileEl.value = '';
-    updatePortfolioFormVisibility();
     renderPortfolioItems();
     sync();
   };
-  if (file) {
-    if (file.size > 5 * 1024 * 1024) {
-      showMessageModal('El archivo supera 5 MB. Usa un enlace o sube un archivo más liviano.', { title: 'Archivo muy grande' });
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => addItem(String(reader.result || ''), file.name, file.type || '');
-    reader.onerror = () => showMessageModal('No se pudo leer el archivo seleccionado.', { title: 'Error' });
-    reader.readAsDataURL(file);
-    return;
-  }
   if (titleEl) titleEl.value = '';
   if (linkEl) linkEl.value = '';
   addItem();
@@ -699,37 +662,77 @@ function removePortfolio(id) {
   sync();
 }
 
+function addReferenceEntry() {
+  const input = document.getElementById('f-reference');
+  if (!input) return;
+  const value = input.value.trim();
+  if (!value) return;
+  references.push(value);
+  input.value = '';
+  renderReferenceCards();
+  sync();
+}
+
+function renderReferenceCards() {
+  const container = document.getElementById('references-list');
+  if (!container) return;
+  container.innerHTML = '';
+  references.forEach((ref, idx) => {
+    const card = document.createElement('div');
+    card.className = 'entry-card';
+    card.innerHTML = `
+      <button class="entry-remove" type="button" onclick="removeReferenceEntry(${idx})"><i class="ti ti-x"></i></button>
+      <div class="field-row full" style="margin-bottom:0">
+        <div>
+          <label>Referencia</label>
+          <input type="text" value="${esc(ref)}" placeholder="Nombre - Contacto" oninput="updateReferenceText(${idx}, this)">
+        </div>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function updateReferenceText(idx, el) {
+  let v = el.value;
+  if (autocorrectEnabled) v = autocorrectText(v, 'f-title');
+  references[idx] = v;
+  if (v !== el.value) el.value = v;
+  sync();
+}
+
+function removeReferenceEntry(idx) {
+  references.splice(idx, 1);
+  renderReferenceCards();
+  sync();
+}
+
+function getPortfolioDisplayTitle(item) {
+  const rawTitle = String(item?.title || '').trim();
+  if (!rawTitle) return '';
+  if (rawTitle.toLowerCase() === 'portafolio web') return '';
+  return rawTitle;
+}
+
 function renderPortfolioItems() {
   const container = document.getElementById('portfolio-list');
   if (!container) return;
   container.innerHTML = '';
 
   entries.portfolio.forEach(item => {
+    const displayTitle = getPortfolioDisplayTitle(item);
     const div = document.createElement('div');
     div.className = 'entry-card';
     div.innerHTML = `
       <button class="entry-remove" onclick="removePortfolio(${item.id})"><i class="ti ti-x"></i></button>
       <div class="field-row">
         <div>
-          <label>Tipo</label>
-          <select onchange="updatePortfolioText(${item.id}, 'type', this)">
-            ${['portafolio web','certificado','proyecto','evidencia','otro'].map(option => `<option value="${esc(option)}" ${item.type === option ? 'selected' : ''}>${esc(option)}</option>`).join('')}
-          </select>
+          <label>Portafolio</label>
+          <input type="text" value="${esc(displayTitle)}" placeholder="Ej: Portafolio personal, Behance, GitHub" oninput="updatePortfolioText(${item.id}, 'title', this)">
         </div>
-        <div style="${needsPortfolioTitle(item.type) ? '' : 'display:none'}">
-          <label>Título</label>
-          <input type="text" value="${esc(item.title)}" oninput="updatePortfolioText(${item.id}, 'title', this)">
-        </div>
-      </div>
-      <div class="field-row full" style="margin-top:8px">
-        <div style="${needsPortfolioLink(item.type) ? '' : 'display:none'}">
-          <label>Enlace o URL</label>
-          <input type="text" value="${esc(item.link)}" oninput="updatePortfolioText(${item.id}, 'link', this)">
-        </div>
-        <div style="${needsPortfolioFile(item.type) ? '' : 'display:none'}">
-          <label>Archivo</label>
-          <input type="file" accept="image/*,application/pdf" onchange="updatePortfolioFile(${item.id}, this)">
-          <div class="help-text">${item.fileName ? (item.fileType === 'application/pdf' ? `PDF adjunto: ${esc(item.fileName)}. Se anexará al final del CV.` : `Archivo actual: ${esc(item.fileName)}`) : 'Opcional: PDF o imagen'}</div>
+        <div>
+          <label>Enlace del portafolio web</label>
+          <input type="text" value="${esc(item.link)}" placeholder="https://..." oninput="updatePortfolioText(${item.id}, 'link', this)">
         </div>
       </div>
     `;
@@ -737,42 +740,16 @@ function renderPortfolioItems() {
   });
 }
 
-function needsPortfolioTitle(type) {
-  return ['portafolio web', 'certificado', 'proyecto', 'evidencia', 'otro'].includes(type);
-}
-
-function needsPortfolioLink(type) {
-  return ['portafolio web', 'proyecto', 'otro'].includes(type);
-}
-
-function needsPortfolioFile(type) {
-  return ['certificado', 'proyecto', 'evidencia', 'otro'].includes(type);
-}
-
-function getPortfolioConfig(type) {
-  const normalized = String(type || '').trim();
-  return {
-    showTitle: needsPortfolioTitle(normalized),
-    showLink: needsPortfolioLink(normalized),
-    showFile: needsPortfolioFile(normalized),
-    fileAccept: normalized === 'certificado' ? 'application/pdf' : 'image/*,application/pdf'
-  };
+function renderReferenceList() {
+  const refs = references || [];
+  if (!refs.length) return '';
+  const items = refs.map(ref => `<div class="cv-reference-item">${esc(ref)}</div>`).join('');
+  return `<div class="cv-section"><div class="cv-section-title">Referencias</div><div class="cv-references-list">${items}</div></div>`;
 }
 
 function updatePortfolioFormVisibility() {
-  const typeEl = document.getElementById('f-portfolio-type');
-  const titleWrap = document.getElementById('portfolio-title-field');
-  const linkWrap = document.getElementById('portfolio-link-field');
-  const fileWrap = document.getElementById('portfolio-file-field');
-  const fileEl = document.getElementById('f-portfolio-file');
-  if (!typeEl || !titleWrap || !linkWrap || !fileWrap) return;
-  const cfg = getPortfolioConfig(typeEl.value);
-  titleWrap.style.display = cfg.showTitle ? '' : 'none';
-  linkWrap.style.display = cfg.showLink ? '' : 'none';
-  fileWrap.style.display = cfg.showFile ? '' : 'none';
-  if (fileEl) fileEl.setAttribute('accept', cfg.fileAccept);
   const addBtn = document.getElementById('btn-add-portfolio');
-  if (addBtn) addBtn.disabled = !typeEl.value.trim();
+  if (addBtn) addBtn.disabled = false;
 }
 
 function updatePortfolioText(id, field, el) {
@@ -782,45 +759,7 @@ function updatePortfolioText(id, field, el) {
   if (autocorrectEnabled && field === 'title') v = autocorrectText(v, 'f-title');
   item[field] = v;
   if (v !== el.value) el.value = v;
-  if (field === 'type') {
-    const cfg = getPortfolioConfig(v);
-    const row = el.closest('.entry-card');
-    if (row) {
-      const titleWrap = row.querySelectorAll('.field-row')[0]?.children?.[1];
-      const linkWrap = row.querySelectorAll('.field-row')[1]?.children?.[0];
-      const fileWrap = row.querySelectorAll('.field-row')[1]?.children?.[1];
-      if (titleWrap) titleWrap.style.display = cfg.showTitle ? '' : 'none';
-      if (linkWrap) linkWrap.style.display = cfg.showLink ? '' : 'none';
-      if (fileWrap) fileWrap.style.display = cfg.showFile ? '' : 'none';
-      const input = row.querySelector('input[type="file"]');
-      if (input) input.setAttribute('accept', cfg.fileAccept);
-    }
-    if (!cfg.showTitle) item.title = '';
-    if (!cfg.showLink) item.link = '';
-    if (!cfg.showFile) { item.fileData = ''; item.fileName = ''; item.fileType = ''; }
-  }
   sync();
-}
-
-function updatePortfolioFile(id, input) {
-  const item = entries.portfolio.find(x => x.id === id);
-  if (!item || !input || !input.files || !input.files[0]) return;
-  const file = input.files[0];
-  if (file.size > 5 * 1024 * 1024) {
-    input.value = '';
-    showMessageModal('El archivo supera 5 MB. Usa un enlace o sube un archivo más liviano.', { title: 'Archivo muy grande' });
-    return;
-  }
-  const reader = new FileReader();
-  reader.onload = () => {
-    item.fileData = String(reader.result || '');
-    item.fileName = file.name;
-    item.fileType = file.type || '';
-    sync();
-    renderPortfolioItems();
-  };
-  reader.onerror = () => showMessageModal('No se pudo leer el archivo seleccionado.', { title: 'Error' });
-  reader.readAsDataURL(file);
 }
 
 function safeHref(url) {
@@ -1147,12 +1086,13 @@ function sync() {
     }).join('');
     languagesHTML = `<div class="cv-section"><div class="cv-section-title">Idiomas</div><div class="cv-skills-list">${items}</div></div>`;
   }
+  const referencesHTML = references.length ? `<div class="cv-section"><div class="cv-section-title">Referencias</div><div class="cv-references-list">${references.map(ref => `<div class="cv-reference-item">${esc(ref)}</div>`).join('')}</div></div>` : '';
   const portfolioHTML = entries.portfolio.length ? `<div class="cv-section"><div class="cv-section-title">Adjuntos opcionales</div><div class="cv-portfolio-list">${entries.portfolio.map(item => {
-    const safeTitle = esc(item.title || item.fileName || 'Adjunto');
-    const typeLabel = esc(item.type || 'otro');
-    const fileLabel = item.fileName ? `<div class="cv-portfolio-file">Archivo: ${esc(item.fileName)}</div>` : '';
-    const linkLabel = item.link ? `<a class="cv-portfolio-link" href="${esc(safeHref(item.link))}" target="_blank" rel="noopener noreferrer">${safeTitle}</a>` : `<span class="cv-portfolio-text">${safeTitle}</span>`;
-    return `<div class="cv-portfolio-item"><div class="cv-portfolio-type">${typeLabel}</div>${linkLabel}${fileLabel}</div>`;
+    const rawTitle = String(item.title || '').trim();
+    const safeTitle = rawTitle.toLowerCase() === 'portafolio web' ? '' : rawTitle;
+    const displayTitle = safeTitle || 'Portafolio';
+    const linkLabel = item.link ? `<a class="cv-portfolio-link" href="${esc(safeHref(item.link))}" target="_blank" rel="noopener noreferrer">${esc(displayTitle)}</a>` : `<span class="cv-portfolio-text">${esc(displayTitle)}</span>`;
+    return `<div class="cv-portfolio-item">${linkLabel}</div>`;
   }).join('')}</div></div>` : '';
 
   const tpl = document.getElementById('template-select').value;
@@ -1166,6 +1106,8 @@ function sync() {
           <div class="cv-meta">${metaParts.join('')}</div>
           ${skillsHTML}
           ${languagesHTML}
+          ${referencesHTML}
+          ${portfolioHTML}
         </div>
         <div class="cv-main">
           <div class="cv-name">${esc(name || 'Tu Nombre')}</div>
@@ -1173,7 +1115,6 @@ function sync() {
           ${bio ? `<div class="cv-section"><div class="cv-section-title">Perfil</div><div class="cv-bio">${esc(bio)}</div></div>` : ''}
           ${expHTML}
           ${eduHTML}
-          ${portfolioHTML}
         </div>
       </div>`;
   } else {

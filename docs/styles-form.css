@@ -90,6 +90,78 @@ label {
   }
 }
 
+.help-text,
+.help-text-inline {
+  margin-top: 8px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #475467;
+  background: linear-gradient(180deg, #fbfcfe 0%, #f8fafc 100%);
+  border: 1px solid #e4e7ec;
+  border-left: 3px solid var(--primary-600);
+  border-radius: 12px;
+  padding: 9px 12px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+.help-text::before,
+.help-text-inline::before {
+  content: 'i';
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  border-radius: 999px;
+  background: var(--primary-50);
+  color: var(--primary-600);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.section-help {
+  margin: 4px 0 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #475467;
+  background: linear-gradient(180deg, #fbfcfe 0%, #f8fafc 100%);
+  border: 1px solid #e4e7ec;
+  border-left: 3px solid var(--primary-600);
+  border-radius: 12px;
+  padding: 9px 12px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+.section-help::before {
+  content: 'i';
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  border-radius: 999px;
+  background: var(--primary-50);
+  color: var(--primary-600);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+@media (min-width: 769px) {
+  .section-help {
+    max-width: 620px;
+  }
+}
+
 input[type="text"], input[type="email"], input[type="tel"], textarea {
   width: 100%;
   font-size: 13px;

@@ -51,7 +51,7 @@ header h1 {
   overflow-y: auto;
 }
 
-@media (max-width: 1199px) {
+@media (max-width: 768px) {
   header {
     padding: 0.9rem 1rem;
     flex-wrap: wrap;
@@ -64,8 +64,7 @@ header h1 {
   }
 
   .app {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto;
+    flex-direction: column;
     height: auto;
   }
 
@@ -75,16 +74,13 @@ header h1 {
 
   .panel-preview {
     order: 2;
+    width: 100%;
   }
 
   .panel-form,
   .panel-preview {
     min-height: auto;
   }
-
-.panel-form { grid-column: 1; }
-.panel-preview { grid-column: 2; align-self: start; }
-
 
   .panel-preview {
     padding-top: 1rem;

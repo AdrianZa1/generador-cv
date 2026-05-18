@@ -127,3 +127,23 @@ async function animateTextareaTyping(textarea, newText, onProgress) {
   if (onProgress) onProgress(textarea.value);
   textarea.readOnly = prevReadOnly;
 }
+
+// Mejora local básica del texto del resumen profesional (sin IA)
+function localImproveBio(text) {
+  if (!text) return '';
+  let t = String(text).trim();
+  // Normalizar espacios
+  t = t.replace(/\s+/g, ' ');
+  // Aplicar autocorrecciones heurísticas
+  t = autocorrectText(t, 'f-bio');
+  // Capitalizar inicio de oraciones
+  t = t.replace(/(^|[\.\!\?]\s+)([a-záéíóúñ])/g, (m, p1, p2) => p1 + p2.toUpperCase());
+  // Asegurar punto final
+  if (!/[\.\!\?]$/.test(t)) t += '.';
+  // Acortar oraciones muy largas (intento simple)
+  if (t.length > 240) {
+    const commaPos = t.indexOf(',', 120);
+    if (commaPos !== -1) t = t.slice(0, commaPos) + '.' + t.slice(commaPos + 1).trim();
+  }
+  return t;
+}

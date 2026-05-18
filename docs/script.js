@@ -93,19 +93,10 @@ function initInputListeners() {
   document.getElementById('add-edu').onclick = () => callGlobal('addEntry', 'edu');
   const addSkillBtn = document.getElementById('add-skill');
   if (addSkillBtn) addSkillBtn.onclick = addSkillEntry;
+  const addRefBtn = document.getElementById('btn-add-reference');
+  if (addRefBtn) addRefBtn.onclick = () => callGlobal('addReferenceEntry');
   const addPortfolioBtn = document.getElementById('btn-add-portfolio');
   if (addPortfolioBtn) addPortfolioBtn.onclick = () => callGlobal('addPortfolio');
-  const portfolioType = document.getElementById('f-portfolio-type');
-  if (portfolioType) portfolioType.addEventListener('change', () => callGlobal('updatePortfolioFormVisibility'));
-  const portfolioFile = document.getElementById('f-portfolio-file');
-  if (portfolioFile) portfolioFile.addEventListener('change', () => {
-    const file = portfolioFile.files && portfolioFile.files[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      portfolioFile.value = '';
-      showMessageModal('El archivo supera 5 MB. Usa un enlace o sube un archivo más liviano.', { title: 'Archivo muy grande' });
-    }
-  });
   const createBioBtn = document.getElementById('btn-create-bio');
   if (createBioBtn) createBioBtn.onclick = () => callGlobal('createBioInteractive');
   const improveBioBtn = document.getElementById('btn-improve-bio');
@@ -182,70 +173,344 @@ async function downloadPDF() {
   }
   const el = document.getElementById('cv-output');
   const wait = showWaitingModal('Generando PDF...');
-  const { jsPDF } = window.jspdf;
   const tpl = document.getElementById('template-select').value;
-  // Intentar generación server-side de alta fidelidad primero (si el servidor la soporta)
+  // Priorizar PDF de texto con estilo de plantilla
   try {
-    const serverOk = await generatePdfServer(el, wait);
-    if (serverOk) return; // ya descargado
-    // Si no hay soporte server-side, usar generador de PDF basado en texto (seleccionable)
-    await generateTextPDF(tpl, wait);
+    await generateTemplateTextPDF(tpl, wait);
+    return;
   } catch (err) {
-    console.error('Error generando PDF de texto', err);
-    // Fallback: intentar el método antiguo con imagen
-    let margin = 40; 
-    if (tpl === 'template-2') margin = 10;
-    // Fallback mejorado: usar html2pdf (html2canvas + jsPDF) y esperar a que las fuentes se carguen
+    console.error('Error generando PDF de texto con plantilla', err);
+    // Fallback 1: PDF de texto básico
     try {
-      await document.fonts.ready;
-      // Clonar el elemento de vista previa y aplicar estilos computados en línea
-      function cloneWithInlineStyles(node) {
-        const clone = node.cloneNode(true);
-        const origElements = node.querySelectorAll('*');
-        const cloneElements = clone.querySelectorAll('*');
-        // Inline styles for root
-        const rootStyle = window.getComputedStyle(node);
-        clone.style.cssText = Array.from(rootStyle).map(p => `${p}: ${rootStyle.getPropertyValue(p)};`).join(' ');
-        for (let i = 0; i < origElements.length; i++) {
-          const s = window.getComputedStyle(origElements[i]);
-          const cs = Array.from(s).map(p => `${p}: ${s.getPropertyValue(p)};`).join(' ');
-          cloneElements[i].style.cssText = cs;
-        }
-        return clone;
-      }
-
-      const preview = el;
-      const clone = cloneWithInlineStyles(preview);
-      // Establecer tamaño fijo apropiado para A4 en px (aprox. 595pt * 1.333 = 793px)
-      clone.style.width = '793px';
-      clone.style.boxSizing = 'border-box';
-      clone.style.background = '#ffffff';
-      // Colocar el clon en un contenedor oculto pero renderable
-      const container = document.createElement('div');
-      container.style.position = 'fixed';
-      container.style.left = '-9999px';
-      container.style.top = '0';
-      container.appendChild(clone);
-      document.body.appendChild(container);
-
-      const marginInInches = margin / 72; // convert points to inches for html2pdf margin
-      const opt = {
-        margin: marginInInches,
-        filename: 'Mi_CV.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2.5, useCORS: true, backgroundColor: '#ffffff' },
-        jsPDF: { unit: 'pt', format: 'a4', orientation: 'portrait' },
-        pagebreak: { mode: ['css', 'legacy'] }
-      };
-
-      html2pdf().set(opt).from(clone).save().then(() => {
-        document.body.removeChild(container);
+      await generateTextPDF(tpl, wait);
+      return;
+    } catch (e1) {
+      console.error('Fallback PDF de texto básico fallido', e1);
+      // Fallback 2: PDF visual por captura (último recurso)
+      try {
+        await generateStyledPDF(tpl, el, wait);
+      } catch (e2) {
+        console.error('Fallback PDF visual fallido', e2);
         wait.close();
-      }).catch(e => { document.body.removeChild(container); wait.close(); console.error('html2pdf error', e); });
-    } catch (e) {
-      console.error('Fallback html2pdf failed', e);
-      wait.close();
+      }
     }
+  }
+}
+
+function normalizeLanguagesForPdf() {
+  return (languages || []).map(lang => {
+    if (typeof lang === 'string') return lang;
+    if (lang && typeof lang === 'object') {
+      const name = String(lang.name || '').trim();
+      const percent = String(lang.percent ?? '').trim();
+      return percent ? `${name} (${percent}%)` : name;
+    }
+    return '';
+  }).filter(Boolean);
+}
+
+function normalizeSkillsForPdf() {
+  return (skills || []).map(skill => {
+    if (typeof skill === 'string') return skill.trim();
+    return '';
+  }).filter(Boolean);
+}
+
+function blobToArrayBuffer(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error || new Error('No se pudo leer Blob'));
+    reader.readAsArrayBuffer(blob);
+  });
+}
+
+function saveBlobAsPdf(blob, fileName) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+async function generateTemplateTextPDF(tpl, waitModal) {
+  if (!window.pdfMake) throw new Error('pdfmake no está disponible');
+
+  window.pdfMake.fonts = window.pdfMake.fonts || {};
+  if (!window.pdfMake.fonts.Times) {
+    window.pdfMake.fonts.Times = {
+      normal: 'Times-Roman',
+      bold: 'Times-Bold',
+      italics: 'Times-Italic',
+      bolditalics: 'Times-BoldItalic'
+    };
+  }
+
+  const primary = (getComputedStyle(document.documentElement).getPropertyValue('--primary') || '#16a34a').trim() || '#16a34a';
+  const name = (document.getElementById('f-name') || {}).value || 'Tu Nombre';
+  const title = (document.getElementById('f-title') || {}).value || 'Tu Título';
+  const bio = (document.getElementById('f-bio') || {}).value || '';
+  const photoDataUrl = (document.getElementById('f-photo') || {}).value || '';
+
+  const metaLines = [
+    (document.getElementById('f-cedula') || {}).value,
+    (document.getElementById('f-dob') || {}).value,
+    (document.getElementById('f-location') || {}).value,
+    (document.getElementById('f-phone') || {}).value,
+    (document.getElementById('f-email') || {}).value
+  ].filter(Boolean);
+
+  const normalizedSkills = normalizeSkillsForPdf();
+  const normalizedLanguages = normalizeLanguagesForPdf();
+  const experiences = (entries && entries.exp) ? entries.exp : [];
+  const education = (entries && entries.edu) ? entries.edu : [];
+  const portfolio = (entries && entries.portfolio) ? entries.portfolio : [];
+
+  const makeSectionTitle = (text) => ({ text, style: 'sectionTitle' });
+
+  const expNodes = [];
+  if (experiences.length) {
+    expNodes.push(makeSectionTitle('EXPERIENCIA'));
+    experiences.forEach(item => {
+      const role = item.role || 'Cargo';
+      const company = item.company || '';
+      const dates = item.dates || '';
+      expNodes.push({ text: `${role}${company ? ` - ${company}` : ''}${dates ? ` · ${dates}` : ''}`, style: 'entryTitle' });
+      if (item.desc) expNodes.push({ text: item.desc, style: 'bodyText' });
+      expNodes.push({ text: ' ', margin: [0, 2, 0, 0] });
+    });
+  }
+
+  const eduNodes = [];
+  if (education.length) {
+    eduNodes.push(makeSectionTitle('EDUCACIÓN'));
+    education.forEach(item => {
+      const role = item.role || 'Título';
+      const company = item.company || '';
+      const dates = item.dates || '';
+      eduNodes.push({ text: `${role}${company ? ` - ${company}` : ''}${dates ? ` · ${dates}` : ''}`, style: 'entryTitle' });
+      eduNodes.push({ text: ' ', margin: [0, 2, 0, 0] });
+    });
+  }
+
+  const portfolioNodes = [];
+  if (portfolio.length) {
+    portfolioNodes.push(makeSectionTitle('ADJUNTOS'));
+    portfolio.forEach(item => {
+      const baseLabel = String(item.title || '').trim().toLowerCase() === 'portafolio web' ? '' : (item.title || '').trim();
+      const displayLabel = baseLabel || (item.link ? 'Portafolio' : 'Portafolio');
+      if (item.link) {
+        let href = item.link;
+        try { href = new URL(item.link, window.location.href).href; } catch (e) {}
+        portfolioNodes.push({ text: displayLabel, style: 'linkText', link: href });
+      } else {
+        portfolioNodes.push({ text: displayLabel, style: 'entryTitle' });
+      }
+      portfolioNodes.push({ text: ' ', margin: [0, 2, 0, 0] });
+    });
+  }
+
+  const classicContent = [
+    {
+      columns: [
+        {
+          width: '*',
+          stack: [
+            { text: name, style: 'name' },
+            { text: title, style: 'jobTitle' },
+            { text: metaLines.join('  |  '), style: 'metaLine', margin: [0, 8, 0, 0] }
+          ]
+        },
+        photoDataUrl ? { width: 82, image: photoDataUrl, fit: [72, 72], alignment: 'right' } : { width: 82, text: '' }
+      ],
+      columnGap: 12,
+      margin: [0, 0, 0, 8]
+    },
+    { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.8, lineColor: '#d1d5db' }], margin: [0, 0, 0, 10] },
+    ...(bio ? [makeSectionTitle('PERFIL'), { text: bio, style: 'bodyText' }] : []),
+    ...expNodes,
+    ...eduNodes,
+    ...(normalizedSkills.length ? [makeSectionTitle('HABILIDADES'), { ul: normalizedSkills, style: 'bodyText' }] : []),
+    ...(normalizedLanguages.length ? [makeSectionTitle('IDIOMAS'), { ul: normalizedLanguages, style: 'bodyText' }] : []),
+    ...portfolioNodes
+  ];
+
+  const sideStack = [];
+  if (photoDataUrl) {
+    sideStack.push({ image: photoDataUrl, fit: [150, 150], margin: [0, 0, 0, 10], alignment: 'center' });
+  } else {
+    const initials = (name || 'NN').split(' ').map(part => part.trim().charAt(0)).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'NN';
+    sideStack.push({ text: initials, style: 'avatarInitials', margin: [0, 14, 0, 18], alignment: 'center' });
+  }
+  metaLines.forEach(line => sideStack.push({ text: line, style: 'sideMeta' }));
+  if (normalizedSkills.length) {
+    sideStack.push({ text: 'HABILIDADES', style: 'sideTitle', margin: [0, 12, 0, 4] });
+    normalizedSkills.forEach(skill => sideStack.push({ text: `• ${skill}`, style: 'sideMeta' }));
+  }
+  
+   const referencesHTML = references.length ? `<div class="cv-section"><div class="cv-section-title">Referencias</div><div class="cv-references-list">${references.map(ref => `<div class="cv-reference-item">${esc(ref)}</div>`).join('')}</div></div>` : '';
+  if (normalizedLanguages.length) {
+    sideStack.push({ text: 'IDIOMAS', style: 'sideTitle', margin: [0, 12, 0, 4] });
+    normalizedLanguages.forEach(lang => sideStack.push({ text: `• ${lang}`, style: 'sideMeta' }));
+  }
+
+  if (references.length) {
+    sideStack.push({ text: 'REFERENCIAS', style: 'sideTitle', margin: [0, 12, 0, 4] });
+    references.forEach(ref => sideStack.push({ text: `• ${ref}`, style: 'sideMeta' }));
+  }
+
+  if (portfolio.length) {
+    sideStack.push({ text: 'PORTAFOLIO', style: 'sideTitle', margin: [0, 12, 0, 4] });
+    portfolio.forEach(item => {
+      const rawTitle = String(item.title || '').trim();
+      const safeTitle = rawTitle.toLowerCase() === 'portafolio web' ? '' : rawTitle;
+      const displayLabel = safeTitle || 'Portafolio';
+      sideStack.push({ text: displayLabel, style: 'linkText', link: item.link ? (function () { try { return new URL(item.link, window.location.href).href; } catch (e) { return item.link; } })() : undefined });
+    });
+  }
+
+  const modernMain = [
+    { text: name, style: 'nameModern' },
+    { text: title, style: 'jobTitleModern' },
+    ...(bio ? [makeSectionTitle('PERFIL'), { text: bio, style: 'bodyText' }] : []),
+    ...expNodes,
+    ...eduNodes,
+    ...portfolioNodes
+  ];
+
+  const modernContent = [
+    {
+      table: {
+        widths: [180, '*'],
+        body: [[
+          { stack: sideStack, fillColor: '#e8f7ee', margin: [10, 10, 10, 10] },
+          { stack: modernMain, margin: [14, 4, 0, 0] }
+        ]]
+      },
+      layout: 'noBorders'
+    }
+  ];
+
+  const docDefinition = {
+    pageSize: 'A4',
+    pageMargins: tpl === 'template-2' ? [24, 24, 24, 24] : [32, 28, 32, 28],
+    content: tpl === 'template-2' ? modernContent : classicContent,
+    defaultStyle: {
+      font: 'Times',
+      fontSize: 10,
+      color: '#111827',
+      lineHeight: 1.25
+    },
+    styles: {
+      name: { fontSize: 22, bold: true, color: '#0f172a' },
+      nameModern: { fontSize: 34, bold: true, color: '#0f172a' },
+      jobTitle: { fontSize: 12, bold: true, color: primary, margin: [0, 4, 0, 0] },
+      jobTitleModern: { fontSize: 12, bold: true, color: primary, margin: [0, 4, 0, 8] },
+      metaLine: { fontSize: 9, color: '#334155' },
+      sectionTitle: { fontSize: 13, bold: true, color: '#0f172a', margin: [0, 12, 0, 6] },
+      entryTitle: { fontSize: 11, bold: true, color: '#0f172a', margin: [0, 2, 0, 2] },
+      bodyText: { fontSize: 10.5, color: '#1f2937', margin: [0, 0, 0, 6] },
+      metaText: { fontSize: 9, color: '#475569', margin: [0, 0, 0, 2] },
+      linkText: { fontSize: 10.5, color: '#1d4ed8', decoration: 'underline', margin: [0, 0, 0, 3] },
+      sideMeta: { fontSize: 10, color: '#1f2937', margin: [0, 0, 0, 6] },
+      sideTitle: { fontSize: 10, bold: true, color: '#0f172a' },
+      avatarInitials: { fontSize: 44, bold: true, color: primary }
+    }
+  };
+
+  const attachments = (entries.portfolio || []).filter(item => item.fileData && item.fileType === 'application/pdf');
+
+  try {
+    await new Promise((resolve, reject) => {
+      pdfMake.createPdf(docDefinition).getBlob(async (blob) => {
+        try {
+          if (attachments.length && window.PDFLib && window.PDFLib.PDFDocument) {
+            const basePdfBytes = await blobToArrayBuffer(blob);
+            const merged = await mergePdfAttachments(basePdfBytes, attachments);
+            savePdfBytes(merged, 'Mi_CV.pdf');
+          } else {
+            saveBlobAsPdf(blob, 'Mi_CV.pdf');
+          }
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
+      });
+    });
+  } finally {
+    if (waitModal && typeof waitModal.close === 'function') waitModal.close();
+  }
+}
+
+async function generateStyledPDF(tpl, previewEl, waitModal) {
+  if (!previewEl) throw new Error('No se encontró la vista previa del CV');
+  if (!window.html2canvas) throw new Error('html2canvas no está disponible');
+  const { jsPDF } = window.jspdf;
+
+  await document.fonts.ready;
+
+  const clone = cloneWithInlineStyles(previewEl);
+  clone.style.background = '#ffffff';
+  clone.style.boxSizing = 'border-box';
+
+  const width = Math.ceil(previewEl.getBoundingClientRect().width || previewEl.scrollWidth || 800);
+  clone.style.width = `${width}px`;
+
+  const container = document.createElement('div');
+  container.style.position = 'fixed';
+  container.style.left = '-10000px';
+  container.style.top = '0';
+  container.style.width = `${width}px`;
+  container.style.background = '#ffffff';
+  container.style.zIndex = '-1';
+  container.appendChild(clone);
+  document.body.appendChild(container);
+
+  try {
+    const canvas = await html2canvas(clone, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      width,
+      windowWidth: width
+    });
+
+    const pdf = new jsPDF('p', 'pt', 'a4');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = tpl === 'template-2' ? 18 : 24;
+    const printableWidth = pageWidth - (margin * 2);
+    const printableHeight = pageHeight - (margin * 2);
+
+    const imgData = canvas.toDataURL('image/jpeg', 0.98);
+    const imgHeight = (canvas.height * printableWidth) / canvas.width;
+
+    let renderedHeight = 0;
+    pdf.addImage(imgData, 'JPEG', margin, margin, printableWidth, imgHeight, undefined, 'FAST');
+    renderedHeight += printableHeight;
+
+    while (renderedHeight < imgHeight) {
+      pdf.addPage();
+      const yOffset = margin - renderedHeight;
+      pdf.addImage(imgData, 'JPEG', margin, yOffset, printableWidth, imgHeight, undefined, 'FAST');
+      renderedHeight += printableHeight;
+    }
+
+    const basePdfBytes = pdf.output('arraybuffer');
+    const attachments = (entries.portfolio || []).filter(item => item.fileData && item.fileType === 'application/pdf');
+
+    if (attachments.length && window.PDFLib && window.PDFLib.PDFDocument) {
+      const merged = await mergePdfAttachments(basePdfBytes, attachments);
+      savePdfBytes(merged, 'Mi_CV.pdf');
+    } else {
+      savePdfBytes(basePdfBytes, 'Mi_CV.pdf');
+    }
+  } finally {
+    if (container.parentNode) container.parentNode.removeChild(container);
+    if (waitModal && typeof waitModal.close === 'function') waitModal.close();
   }
 }
 
@@ -426,8 +691,25 @@ async function generateTextPDF(tpl, waitModal) {
   }
 
   // Habilidades y Idiomas
-  if (skills && skills.length) { addSectionTitle('Habilidades'); addTextBlock(skills.join(', '), { size: 11 }); }
-  if (languages && languages.length) { addSectionTitle('Idiomas'); addTextBlock(languages.join(', '), { size: 11 }); }
+  if (skills && skills.length) {
+    addSectionTitle('Habilidades');
+    addTextBlock(skills.map(s => (typeof s === 'string' ? s : '')).filter(Boolean).join(', '), { size: 11 });
+  }
+  if (languages && languages.length) {
+    addSectionTitle('Idiomas');
+    const languageText = languages.map(lang => {
+      if (typeof lang === 'string') return lang;
+      if (lang && typeof lang === 'object') {
+        const name = lang.name || '';
+        const percent = (lang.percent !== undefined && lang.percent !== null && String(lang.percent) !== '')
+          ? ` (${lang.percent}%)`
+          : '';
+        return `${name}${percent}`.trim();
+      }
+      return '';
+    }).filter(Boolean).join(', ');
+    addTextBlock(languageText, { size: 11 });
+  }
 
   // Guardar
   const basePdfBytes = pdf.output('arraybuffer');

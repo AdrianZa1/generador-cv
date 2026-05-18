@@ -18,6 +18,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://unpkg.com/pdfmake@0.2.10/build/pdfmake.min.js"></script>
+  <script src="https://unpkg.com/pdfmake@0.2.10/build/vfs_fonts.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
 
   <style>
@@ -154,38 +156,21 @@
         <i class="ti ti-plus"></i> Añadir idioma
       </button>
 
-      <div class="section-heading">Adjuntos opcionales</div>
-      <div class="section-help">Si cuentas con portafolio web, certificados, proyectos o evidencias de trabajo, añádelos aquí. Si no aplica, puedes omitir esta sección.</div>
+      <div class="section-heading">Portafolio</div>
+      <div class="section-help">Si tienes un portafolio web, añade el nombre a la izquierda y el enlace a la derecha.</div>
       <div id="portfolio-list"></div>
-      <div class="field-row full" style="margin-top:8px">
-        <div class="field-row" style="margin-bottom:0">
-          <div>
-            <label>Tipo</label>
-            <select id="f-portfolio-type">
-              <option value="" selected>Selecciona una opción</option>
-              <option value="portafolio web">Portafolio web</option>
-              <option value="certificado">Certificado</option>
-              <option value="proyecto">Proyecto</option>
-              <option value="evidencia">Evidencia de trabajo</option>
-              <option value="otro">Otro</option>
-            </select>
-          </div>
-          <div id="portfolio-title-field" style="display:none">
-            <label>Título o nombre</label>
-            <input type="text" id="f-portfolio-title" placeholder="Ej: Certificado de curso, proyecto, evidencia">
-          </div>
-          <div id="portfolio-link-field" style="display:none">
-            <label>Enlace o URL</label>
-            <input type="text" id="f-portfolio-link" placeholder="https://... (opcional)">
-          </div>
-          <div id="portfolio-file-field" style="display:none">
-            <label>Archivo</label>
-            <input type="file" id="f-portfolio-file" accept="image/*,application/pdf">
-          </div>
+      <div class="field-row" style="margin-top:8px; margin-bottom:0">
+        <div>
+          <label>Portafolio</label>
+          <input type="text" id="f-portfolio-title" placeholder="Ej: Portafolio personal, Behance, GitHub">
         </div>
-        <div style="display:flex; justify-content:flex-end; margin-top:8px">
-          <button class="add-btn" id="btn-add-portfolio" type="button">Añadir adjunto</button>
+        <div>
+          <label>Enlace del portafolio web</label>
+          <input type="text" id="f-portfolio-link" placeholder="https://...">
         </div>
+      </div>
+      <div style="display:flex; justify-content:flex-end; margin-top:8px">
+        <button class="add-btn" id="btn-add-portfolio" type="button">Añadir portafolio</button>
       </div>
 
       <div id="references-section" style="display:none; margin-top:12px">
@@ -197,12 +182,9 @@
         </div>
       </div>
 
-      <div class="form-actions" style="display:flex; justify-content:space-between; gap:8px; margin-top:12px">
+      <div class="form-actions" style="display:flex; justify-content:flex-start; gap:8px; margin-top:12px">
         <div>
           <button class="add-btn" id="btn-back">← Anterior</button>
-        </div>
-        <div>
-          <button class="add-btn" id="download-pdf-footer">📄 Descargar PDF</button>
         </div>
       </div>
     </div>

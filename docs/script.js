@@ -496,7 +496,7 @@ function boot() {
       if (!pp || !pf || !app) return;
       const headerH = header ? header.offsetHeight : 60;
       if (window.innerWidth >= 800) {
-        const previewWidth = Math.max(360, Math.round(window.innerWidth * 0.4));
+        const previewWidth = Math.round(window.innerWidth * 0.5);
         pp.style.position = 'fixed';
         pp.style.right = '0';
         pp.style.top = headerH + 'px';

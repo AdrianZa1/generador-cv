@@ -91,17 +91,24 @@
       </div>
 
       <div class="field-row">
-        <div>
+        <div class="date-field">
           <label>Fecha de nacimiento</label>
-          <input type="date" id="f-dob">
+          <div class="date-input-wrap">
+            <input type="text" id="f-dob" placeholder="AAAA-MM-DD" inputmode="numeric" maxlength="10">
+            <button type="button" class="date-picker-btn" id="f-dob-picker-btn" aria-label="Abrir calendario">
+              <i class="ti ti-calendar-event"></i>
+            </button>
+            <input type="date" id="f-dob-picker" class="date-picker-native" aria-hidden="true" tabindex="-1">
+          </div>
+          <div class="section-help">Digita tu fecha como AAAA-MM-DD o usa el calendario.</div>
         </div>
-      </div>
 
-      <div class="field-row full">
-        <label>Foto de perfil</label>
-        <input type="file" id="f-photo-file" accept="image/*">
-        <button class="add-btn" id="f-photo-clear" type="button" style="margin-top:6px; display:none">Quitar foto</button>
-        <input type="hidden" id="f-photo" value="">
+        <div>
+          <label>Foto de perfil</label>
+          <input type="file" id="f-photo-file" accept="image/*">
+          <button class="add-btn" id="f-photo-clear" type="button" style="margin-top:6px; display:none">Quitar foto</button>
+          <input type="hidden" id="f-photo" value="">
+        </div>
       </div>
 
       <div class="section-heading">Resumen profesional</div>

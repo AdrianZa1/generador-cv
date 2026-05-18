@@ -390,22 +390,27 @@ function createEntryDesc(id) {
     { q: '¿Cómo resumirías tu contribución en una frase?', placeholder: 'Frase breve de resumen' }
   ];
   showQuestionModal({ title: 'Crear descripción', intro: 'Te haré 5 preguntas para generar una descripción profesional.', questions }, (answers) => {
-    const proceedWithAI = async () => {
-      const wait = showWaitingModal('Generando con IA...');
+    const localText = generateTextFromAnswers('exp', answers, { company: entry.company, role: entry.role });
+    entry.desc = localText;
+    renderEntries('exp');
+    sync();
+    showMessageModal('Descripción creada y añadida', { title: 'Listo' });
+
+    (async () => {
       try {
-        const system = 'Eres un asistente que genera descripciones profesionales para CV en español. Mantén máximo 150 palabras.';
-        const userPrompt = `Contexto: experiencia en ${entry.company||''} como ${entry.role||''}. Respuestas: ${answers.join(' | ')}`;
+        const system = 'Eres un asistente que redacta descripciones profesionales para CV en español. Debes sintetizar la información en un solo párrafo formal, sin copiar literalmente las respuestas ni enumerarlas.';
+        const userPrompt = `Redacta una descripción profesional de experiencia laboral usando estos datos: empresa=${entry.company||''}; cargo=${entry.role||''}; responsabilidad=${answers[0]||''}; logro=${answers[1]||''}; herramientas=${answers[2]||''}; impacto=${answers[3]||''}; cierre=${answers[4]||''}. Devuelve solo un párrafo claro y formal.`;
         let out = await callOpenAI(system, userPrompt);
         out = truncateWords(out, 150);
-        if (!out) out = generateTextFromAnswers('exp', answers, { company: entry.company, role: entry.role });
-        entry.desc = out; renderEntries('exp'); sync(); showMessageModal('Descripción creada y añadida', { title: 'Listo' });
+        if (out && out.trim() && out.trim() !== localText.trim()) {
+          entry.desc = out.trim();
+          renderEntries('exp');
+          sync();
+        }
       } catch (err) {
         console.error(err);
-        const fallback = generateTextFromAnswers('exp', answers, { company: entry.company, role: entry.role });
-        entry.desc = fallback; renderEntries('exp'); sync(); showMessageModal('No se pudo usar la IA, se aplicó una descripción generada localmente', { title: 'Aviso' });
-      } finally { try { wait.close(); } catch(e){} }
-    };
-    proceedWithAI();
+      }
+    })();
   });
 }
 
@@ -418,24 +423,24 @@ function createBioInteractive() {
     { q: '¿Qué te diferencia como profesional?', placeholder: 'Ej: atención al detalle, empatía, responsabilidad' }
   ];
   showQuestionModal({ title: 'Crear resumen profesional', intro: '', questions }, (answers) => {
-    const proceedWithAI = async () => {
-      const wait = showWaitingModal('Generando con IA...');
+    const fallback = generateTextFromAnswers('profile', answers);
+    const bioEl = document.getElementById('f-bio'); if (bioEl) bioEl.value = fallback;
+    sync(); showMessageModal('Resumen generado e insertado', { title: 'Listo' });
+
+    (async () => {
       try {
-        const system = 'Eres un asistente que genera resúmenes profesionales para CV en español. Mantén máximo 150 palabras.';
-        const userPrompt = `Perfil: respuestas: ${answers.join(' | ')}`;
+        const system = 'Eres un asistente que redacta resúmenes profesionales para CV en español. Debes sintetizar la información en un solo párrafo formal, sin copiar literalmente las respuestas ni listarlas.';
+        const userPrompt = `Redacta un resumen profesional usando estos datos: especialidad=${answers[0]||''}; experiencia=${answers[1]||''}; fortalezas=${answers[2]||''}; objetivo=${answers[3]||''}; diferenciador=${answers[4]||''}. Devuelve solo un párrafo claro, profesional y fluido.`;
         let out = await callOpenAI(system, userPrompt);
         out = truncateWords(out, 150);
-        if (!out) out = generateTextFromAnswers('profile', answers);
-        const bioEl = document.getElementById('f-bio'); if (bioEl) bioEl.value = out;
-        sync(); showMessageModal('Resumen generado e insertado', { title: 'Listo' });
+        if (out && out.trim() && out.trim() !== fallback.trim()) {
+          const bio = document.getElementById('f-bio'); if (bio) bio.value = out.trim();
+          sync();
+        }
       } catch (err) {
         console.error(err);
-        const fallback = generateTextFromAnswers('profile', answers);
-        const bioEl = document.getElementById('f-bio'); if (bioEl) bioEl.value = fallback;
-        sync(); showMessageModal('No se pudo usar la IA, se aplicó una descripción generada localmente', { title: 'Aviso' });
-      } finally { try { wait.close(); } catch(e){} }
-    };
-    proceedWithAI();
+      }
+    })();
   });
 }
 
@@ -958,27 +963,27 @@ function truncateWords(s, maxWords) {
 }
 
 function generateTextFromAnswers(context, answers, meta) {
+  const clean = (s) => String(s || '').trim().replace(/\s+/g, ' ');
+  const firstUpper = (s) => clean(s).replace(/^[a-záéíóúñ]/, m => m.toUpperCase());
   let text = '';
   if (context === 'profile') {
-    const [spec, years, skillsAns, objective, diff] = answers.map(a => a || '').slice(0,5);
-    const parts = [];
-    if (spec) parts.push(`${spec}`);
-    if (years) parts.push(`${years} de experiencia`);
-    if (skillsAns) parts.push(`Habilidades: ${skillsAns}`);
-    if (objective) parts.push(`${objective}`);
-    if (diff) parts.push(`Me destaco por ${diff}`);
-    text = parts.join('. ') + '.';
+    const [spec, years, skillsAns, objective, diff] = answers.map(a => a || '').slice(0, 5);
+    const sentence1 = [spec, years ? `con ${clean(years)}` : ''].filter(Boolean).join(' ').trim();
+    const sentence2 = skillsAns ? `Cuenta con habilidades en ${clean(skillsAns).toLowerCase()}.` : '';
+    const sentence3 = objective ? `Está especializado en ${clean(objective).toLowerCase()}.` : '';
+    const sentence4 = diff ? `${firstUpper(diff)}.` : 'Se destaca por su compromiso, responsabilidad y orientación a resultados.';
+    text = `${firstUpper(sentence1 || 'Profesional')}. ${sentence2} ${sentence3} ${sentence4}`.trim();
   } else if (context === 'exp') {
-    const [resp, ach, tools, impact, summary] = answers.map(a => a || '').slice(0,5);
-    const head = meta && meta.role ? `${meta.role} en ${meta.company}` : '';
-    const parts = [];
-    if (head) parts.push(head);
-    if (resp) parts.push(`Responsable de ${resp}`);
-    if (ach) parts.push(`Logro: ${ach}`);
-    if (tools) parts.push(`Herramientas: ${tools}`);
-    if (impact) parts.push(`Impacto: ${impact}`);
-    if (summary) parts.push(summary);
-    text = parts.join('. ') + '.';
+    const [resp, ach, tools, impact, summary] = answers.map(a => a || '').slice(0, 5);
+    const role = clean(meta && meta.role) || 'el cargo';
+    const company = clean(meta && meta.company);
+    const intro = company ? `${role} en ${company}.` : `${firstUpper(role)}.`;
+    const sentence2 = resp ? `${firstUpper(resp)}.` : 'Participó en actividades propias del puesto.';
+    const sentence3 = ach ? `${firstUpper(ach)}.` : '';
+    const sentence4 = tools ? `Se utilizaron herramientas y métodos como ${clean(tools).toLowerCase()}.` : '';
+    const sentence5 = impact ? `Esto permitió ${clean(impact).toLowerCase()}.` : '';
+    const sentence6 = summary ? `${firstUpper(summary)}.` : 'Contribuyendo a la mejora continua de procesos y resultados.';
+    text = `${intro} ${sentence2} ${sentence3} ${sentence4} ${sentence5} ${sentence6}`.replace(/\s+/g, ' ').trim();
   }
   text = text.replace(/\s+\./g, '.').replace(/\.\.+/g, '.');
   return truncateWords(text, 150);

@@ -77,6 +77,14 @@ header h1 {
 .panel-form { grid-column: 1; }
 .panel-preview { grid-column: 2; align-self: start; }
 
+/* Keep preview visible on the right and scroll independently */
+.panel-preview {
+  position: sticky;
+  top: 60px; /* below header */
+  height: calc(100vh - 60px);
+  overflow-y: auto;
+}
+
   .panel-preview {
     padding-top: 1rem;
   }

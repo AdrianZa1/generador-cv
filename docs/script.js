@@ -486,46 +486,6 @@ function boot() {
   };
   tryShow();
 
-  // Ensure preview is pinned to the right on desktop sizes (persistent on reload)
-  const enforcePreviewRight = () => {
-    try {
-      const pp = document.querySelector('.panel-preview');
-      const pf = document.querySelector('.panel-form');
-      const app = document.querySelector('.app');
-      const header = document.querySelector('header');
-      if (!pp || !pf || !app) return;
-      const headerH = header ? header.offsetHeight : 60;
-      if (window.innerWidth >= 800) {
-        const previewWidth = Math.max(320, Math.round(window.innerWidth * 0.5));
-        pp.style.position = 'fixed';
-        pp.style.right = '0';
-        pp.style.top = headerH + 'px';
-        pp.style.width = previewWidth + 'px';
-        pp.style.height = `calc(100vh - ${headerH}px)`;
-        pp.style.zIndex = '9999';
-        pp.style.overflowY = 'auto';
-        pf.style.marginRight = previewWidth + 'px';
-        pf.style.minWidth = '0';
-        app.style.display = 'flex';
-        app.style.flexDirection = 'row';
-      } else {
-        // restore defaults for mobile
-        pp.style.position = '';
-        pp.style.right = '';
-        pp.style.top = '';
-        pp.style.width = '';
-        pp.style.height = '';
-        pp.style.zIndex = '';
-        pp.style.overflowY = '';
-        pf.style.marginRight = '';
-        pf.style.minWidth = '';
-        app.style.display = '';
-        app.style.flexDirection = '';
-      }
-    } catch (e) { console.warn('enforcePreviewRight error', e); }
-  };
-  enforcePreviewRight();
-  window.addEventListener('resize', enforcePreviewRight);
 }
 
 boot();

@@ -390,31 +390,22 @@ function createEntryDesc(id) {
     { q: '¿Cómo resumirías tu contribución en una frase?', placeholder: 'Frase breve de resumen' }
   ];
   showQuestionModal({ title: 'Crear descripción', intro: 'Te haré 5 preguntas para generar una descripción profesional.', questions }, (answers) => {
-    showConfirmModal('¿Quieres que la IA genere la descripción? (recomendado)', async (useAI) => {
-      if (useAI) {
-        const proceedWithAI = async () => {
-          const wait = showWaitingModal('Generando con IA...');
-          try {
-            const system = 'Eres un asistente que genera descripciones profesionales para CV en español. Mantén máximo 150 palabras.';
-            const userPrompt = `Contexto: experiencia en ${entry.company||''} como ${entry.role||''}. Respuestas: ${answers.join(' | ')}`;
-            let out = await callOpenAI(system, userPrompt);
-            out = truncateWords(out, 150);
-            if (!out) out = generateTextFromAnswers('exp', answers, { company: entry.company, role: entry.role });
-            entry.desc = out; renderEntries('exp'); sync(); showMessageModal('Descripción creada y añadida', { title: 'Listo' });
-          } catch (err) {
-            console.error(err);
-            const fallback = generateTextFromAnswers('exp', answers, { company: entry.company, role: entry.role });
-            entry.desc = fallback; renderEntries('exp'); sync(); showMessageModal('No se pudo usar la IA, se aplicó una descripción generada localmente', { title: 'Aviso' });
-          } finally { try { wait.close(); } catch(e){} }
-        };
-        if (!getAIKey()) {
-          promptForApiKey((k) => { if (k) proceedWithAI(); else showMessageModal('Clave no guardada, usando generación local.', { title: 'Aviso' }); });
-        } else proceedWithAI();
-      } else {
-        const gen = generateTextFromAnswers('exp', answers, { company: entry.company, role: entry.role });
-        entry.desc = gen; renderEntries('exp'); sync(); showMessageModal('Descripción creada y añadida', { title: 'Listo' });
-      }
-    });
+    const proceedWithAI = async () => {
+      const wait = showWaitingModal('Generando con IA...');
+      try {
+        const system = 'Eres un asistente que genera descripciones profesionales para CV en español. Mantén máximo 150 palabras.';
+        const userPrompt = `Contexto: experiencia en ${entry.company||''} como ${entry.role||''}. Respuestas: ${answers.join(' | ')}`;
+        let out = await callOpenAI(system, userPrompt);
+        out = truncateWords(out, 150);
+        if (!out) out = generateTextFromAnswers('exp', answers, { company: entry.company, role: entry.role });
+        entry.desc = out; renderEntries('exp'); sync(); showMessageModal('Descripción creada y añadida', { title: 'Listo' });
+      } catch (err) {
+        console.error(err);
+        const fallback = generateTextFromAnswers('exp', answers, { company: entry.company, role: entry.role });
+        entry.desc = fallback; renderEntries('exp'); sync(); showMessageModal('No se pudo usar la IA, se aplicó una descripción generada localmente', { title: 'Aviso' });
+      } finally { try { wait.close(); } catch(e){} }
+    };
+    proceedWithAI();
   });
 }
 
@@ -427,34 +418,24 @@ function createBioInteractive() {
     { q: '¿Qué te diferencia como profesional?', placeholder: 'Ej: atención al detalle, empatía, responsabilidad' }
   ];
   showQuestionModal({ title: 'Crear resumen profesional', intro: '', questions }, (answers) => {
-    showConfirmModal('¿Quieres que la IA genere tu resumen profesional? (recomendado)', async (useAI) => {
-      if (useAI) {
-        const proceedWithAI = async () => {
-          const wait = showWaitingModal('Generando con IA...');
-          try {
-            const system = 'Eres un asistente que genera resúmenes profesionales para CV en español. Mantén máximo 150 palabras.';
-            const userPrompt = `Perfil: respuestas: ${answers.join(' | ')}`;
-            let out = await callOpenAI(system, userPrompt);
-            out = truncateWords(out, 150);
-            if (!out) out = generateTextFromAnswers('profile', answers);
-            const bioEl = document.getElementById('f-bio'); if (bioEl) bioEl.value = out;
-            sync(); showMessageModal('Resumen generado e insertado', { title: 'Listo' });
-          } catch (err) {
-            console.error(err);
-            const fallback = generateTextFromAnswers('profile', answers);
-            const bioEl = document.getElementById('f-bio'); if (bioEl) bioEl.value = fallback;
-            sync(); showMessageModal('No se pudo usar la IA, se aplicó una descripción generada localmente', { title: 'Aviso' });
-          } finally { try { wait.close(); } catch(e){} }
-        };
-        if (!getAIKey()) {
-          promptForApiKey((k) => { if (k) proceedWithAI(); else showMessageModal('Clave no guardada, usando generación local.', { title: 'Aviso' }); });
-        } else proceedWithAI();
-      } else {
-        const gen = generateTextFromAnswers('profile', answers);
-        const bioEl = document.getElementById('f-bio'); if (bioEl) bioEl.value = gen;
+    const proceedWithAI = async () => {
+      const wait = showWaitingModal('Generando con IA...');
+      try {
+        const system = 'Eres un asistente que genera resúmenes profesionales para CV en español. Mantén máximo 150 palabras.';
+        const userPrompt = `Perfil: respuestas: ${answers.join(' | ')}`;
+        let out = await callOpenAI(system, userPrompt);
+        out = truncateWords(out, 150);
+        if (!out) out = generateTextFromAnswers('profile', answers);
+        const bioEl = document.getElementById('f-bio'); if (bioEl) bioEl.value = out;
         sync(); showMessageModal('Resumen generado e insertado', { title: 'Listo' });
-      }
-    });
+      } catch (err) {
+        console.error(err);
+        const fallback = generateTextFromAnswers('profile', answers);
+        const bioEl = document.getElementById('f-bio'); if (bioEl) bioEl.value = fallback;
+        sync(); showMessageModal('No se pudo usar la IA, se aplicó una descripción generada localmente', { title: 'Aviso' });
+      } finally { try { wait.close(); } catch(e){} }
+    };
+    proceedWithAI();
   });
 }
 

@@ -1086,9 +1086,14 @@ function showPage(n) {
     if (!validateCedula()) return;
     if (!validateDob()) return;
   }
-  p1.style.display = n === 1 ? '' : 'none';
-  p2.style.display = n === 2 ? '' : 'none';
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (p1) p1.style.display = '';
+  if (p2) p2.style.display = '';
+  const target = n === 2 ? p2 : p1;
+  if (target && typeof target.scrollIntoView === 'function') {
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } else {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 }
 
 function sync() {

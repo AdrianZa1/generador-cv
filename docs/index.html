@@ -33,7 +33,7 @@
     .add-btn.icon-left { display:inline-flex; align-items:center }
     /* Keep buttons compact and visually aligned with the textarea */
     .bio-actions .add-btn { min-width:0; width:120px; padding:8px 10px; box-sizing:border-box; font-size:13px }
-    
+
     /* FORCE TWO-COLUMN LAYOUT ON DESKTOP */
     .app {
       display: flex !important;
@@ -50,13 +50,58 @@
       flex-shrink: 0 !important;
       overflow-y: auto !important;
     }
-  </style>
+
     @media (max-width:720px) {
       .bio-actions .add-btn { width:100%; }
+      .app { flex-direction: column !important; height: auto !important; }
+      .panel-preview { width: 100% !important; position: static !important; }
+      .panel-form { margin-right: 0 !important; }
     }
+
     /* Make bio textarea larger to match desired proportions */
     .bio-textarea { flex:1 1 auto; min-height:100px; max-height:420px; resize:vertical; padding:12px; font-size:14px; line-height:1.4; width:auto }
   </style>
+
+  <script>
+    (function enforceImmediatePreview() {
+      function apply() {
+        try {
+          var pp = document.querySelector('.panel-preview');
+          var pf = document.querySelector('.panel-form');
+          var app = document.querySelector('.app');
+          var header = document.querySelector('header');
+          if (!pp || !pf || !app) return;
+          var headerH = header ? header.offsetHeight : 60;
+          if (window.innerWidth >= 800) {
+            pp.style.position = 'fixed';
+            pp.style.right = '0';
+            pp.style.top = headerH + 'px';
+            pp.style.width = '560px';
+            pp.style.height = 'calc(100vh - ' + headerH + 'px)';
+            pp.style.zIndex = '9999';
+            pf.style.marginRight = '560px';
+            pf.style.minWidth = '0';
+            app.style.display = 'flex';
+            app.style.flexDirection = 'row';
+          } else {
+            pp.style.position = '';
+            pp.style.right = '';
+            pp.style.top = '';
+            pp.style.width = '';
+            pp.style.height = '';
+            pp.style.zIndex = '';
+            pf.style.marginRight = '';
+            pf.style.minWidth = '';
+            app.style.display = '';
+            app.style.flexDirection = '';
+          }
+        } catch (e) { /* ignore */ }
+      }
+      document.addEventListener('DOMContentLoaded', apply);
+      window.addEventListener('resize', apply);
+      setTimeout(apply, 300);
+    })();
+  </script>
 </head>
 <body>
 

@@ -3,6 +3,24 @@ if (typeof BACKEND_URL === 'undefined') {
   var BACKEND_URL = document.querySelector('meta[name="backend-url"]')?.content || '';
 }
 
+// Ensure pdfMake Roboto font mapping exists when vfs provides the Roboto files (some builds
+// provide vfs but don't expose the fonts mapping). This prevents "font not defined" errors
+// in production when generating PDFs.
+try {
+  if (window.pdfMake && window.pdfMake.vfs) {
+    window.pdfMake.fonts = window.pdfMake.fonts || {};
+    const vfs = window.pdfMake.vfs;
+    if (!window.pdfMake.fonts.Roboto && (vfs['Roboto-Regular.ttf'] || vfs['Roboto-Regular'])) {
+      window.pdfMake.fonts.Roboto = {
+        normal: 'Roboto-Regular.ttf',
+        bold: 'Roboto-Medium.ttf',
+        italics: 'Roboto-Italic.ttf',
+        bolditalics: 'Roboto-MediumItalic.ttf'
+      };
+    }
+  }
+} catch (e) { /* ignore */ }
+
 // ===================== CONTROLADOR PRINCIPAL =====================
 function initInputListeners() {
   const doSync = () => { if (typeof sync === 'function') sync(); };
@@ -240,7 +258,27 @@ async function generateTemplateTextPDF(tpl, waitModal) {
   if (!window.pdfMake) throw new Error('pdfmake no está disponible');
 
   window.pdfMake.fonts = window.pdfMake.fonts || {};
-  if (!window.pdfMake.fonts.Times) {
+  // Prefer Times if its font files are present in the pdfMake virtual FS (vfs).
+  // In browser builds pdfMake usually only ships Roboto in vfs. If Times isn't embedded,
+  // fall back to Roboto to avoid runtime "File 'data/Times-Bold.afm' not found" errors.
+  const vfs = window.pdfMake.vfs || {};
+  // If vfs provides Roboto files but fonts mapping isn't set, create the Roboto mapping.
+  if (!window.pdfMake.fonts.Roboto && (vfs['Roboto-Regular.ttf'] || vfs['Roboto-Regular'])) {
+    window.pdfMake.fonts.Roboto = {
+      normal: 'Roboto-Regular.ttf',
+      bold: 'Roboto-Medium.ttf',
+      italics: 'Roboto-Italic.ttf',
+      bolditalics: 'Roboto-MediumItalic.ttf'
+    };
+  }
+  const hasTimes = Object.keys(vfs).some(k => /times[-_ ]?roman|times[-_ ]?bold|Times-Bold|Times-Roman|Times\.ttf/i.test(k));
+  const availableFonts = Object.keys(window.pdfMake.fonts || {});
+  let preferredFont = null;
+  if (hasTimes && (window.pdfMake.fonts && window.pdfMake.fonts.Times)) preferredFont = 'Times';
+  else if (availableFonts.includes('Roboto')) preferredFont = 'Roboto';
+  else if (availableFonts.length) preferredFont = availableFonts[0];
+  else preferredFont = null;
+  if (hasTimes && !window.pdfMake.fonts.Times) {
     window.pdfMake.fonts.Times = {
       normal: 'Times-Roman',
       bold: 'Times-Bold',
@@ -398,12 +436,11 @@ async function generateTemplateTextPDF(tpl, waitModal) {
     pageSize: 'A4',
     pageMargins: tpl === 'template-2' ? [24, 24, 24, 24] : [32, 28, 32, 28],
     content: tpl === 'template-2' ? modernContent : classicContent,
-    defaultStyle: {
-      font: 'Times',
-      fontSize: 10,
-      color: '#111827',
-      lineHeight: 1.25
-    },
+    defaultStyle: (function(){
+      const s = { fontSize: 10, color: '#111827', lineHeight: 1.25 };
+      if (preferredFont) s.font = preferredFont;
+      return s;
+    })(),
     styles: {
       name: { fontSize: 22, bold: true, color: '#0f172a' },
       nameModern: { fontSize: 34, bold: true, color: '#0f172a' },

@@ -53,7 +53,7 @@ header h1 {
   overflow-y: auto;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 600px) {
   header {
     padding: 0.9rem 1rem;
     flex-wrap: wrap;

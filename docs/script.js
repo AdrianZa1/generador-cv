@@ -308,6 +308,10 @@ async function generateTemplateTextPDF(tpl, waitModal) {
   const portfolio = (entries && entries.portfolio) ? entries.portfolio : [];
 
   const makeSectionTitle = (text) => ({ text, style: 'sectionTitle' });
+  const makeDivider = (margin = [0, 6, 0, 8]) => ({
+    canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.6, lineColor: '#d1d5db' }],
+    margin
+  });
 
   const expNodes = [];
   if (experiences.length) {
@@ -318,7 +322,7 @@ async function generateTemplateTextPDF(tpl, waitModal) {
       const dates = item.dates || '';
       expNodes.push({ text: `${role}${company ? ` - ${company}` : ''}${dates ? ` · ${dates}` : ''}`, style: 'entryTitle' });
       if (item.desc) expNodes.push({ text: item.desc, style: 'bodyText' });
-      expNodes.push({ text: ' ', margin: [0, 2, 0, 0] });
+      expNodes.push(makeDivider([0, 2, 0, 8]));
     });
   }
 
@@ -330,7 +334,7 @@ async function generateTemplateTextPDF(tpl, waitModal) {
       const company = item.company || '';
       const dates = item.dates || '';
       eduNodes.push({ text: `${role}${company ? ` - ${company}` : ''}${dates ? ` · ${dates}` : ''}`, style: 'entryTitle' });
-      eduNodes.push({ text: ' ', margin: [0, 2, 0, 0] });
+      eduNodes.push(makeDivider([0, 2, 0, 8]));
     });
   }
 
@@ -347,7 +351,7 @@ async function generateTemplateTextPDF(tpl, waitModal) {
       } else {
         portfolioNodes.push({ text: displayLabel, style: 'entryTitle' });
       }
-      portfolioNodes.push({ text: ' ', margin: [0, 2, 0, 0] });
+      portfolioNodes.push(makeDivider([0, 2, 0, 8]));
     });
   }
 
@@ -368,11 +372,11 @@ async function generateTemplateTextPDF(tpl, waitModal) {
       margin: [0, 0, 0, 8]
     },
     { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.8, lineColor: '#d1d5db' }], margin: [0, 0, 0, 10] },
-    ...(bio ? [makeSectionTitle('PERFIL'), { text: bio, style: 'bodyText' }] : []),
+    ...(bio ? [makeSectionTitle('PERFIL'), { text: bio, style: 'bodyText' }, makeDivider([0, 4, 0, 10])] : []),
     ...expNodes,
     ...eduNodes,
-    ...(normalizedSkills.length ? [makeSectionTitle('HABILIDADES'), { ul: normalizedSkills, style: 'bodyText' }] : []),
-    ...(normalizedLanguages.length ? [makeSectionTitle('IDIOMAS'), { ul: normalizedLanguages, style: 'bodyText' }] : []),
+    ...(normalizedSkills.length ? [makeSectionTitle('HABILIDADES'), { ul: normalizedSkills, style: 'bodyText' }, makeDivider([0, 4, 0, 10])] : []),
+    ...(normalizedLanguages.length ? [makeSectionTitle('IDIOMAS'), { ul: normalizedLanguages, style: 'bodyText' }, makeDivider([0, 4, 0, 10])] : []),
     ...portfolioNodes
   ];
 
@@ -387,17 +391,20 @@ async function generateTemplateTextPDF(tpl, waitModal) {
   if (normalizedSkills.length) {
     sideStack.push({ text: 'HABILIDADES', style: 'sideTitle', margin: [0, 12, 0, 4] });
     normalizedSkills.forEach(skill => sideStack.push({ text: `• ${skill}`, style: 'sideMeta' }));
+    sideStack.push({ canvas: [{ type: 'line', x1: 0, y1: 0, x2: 150, y2: 0, lineWidth: 0.5, lineColor: '#cbd5e1' }], margin: [0, 4, 0, 8] });
   }
   
    const referencesHTML = references.length ? `<div class="cv-section"><div class="cv-section-title">Referencias</div><div class="cv-references-list">${references.map(ref => `<div class="cv-reference-item">${esc(ref)}</div>`).join('')}</div></div>` : '';
   if (normalizedLanguages.length) {
     sideStack.push({ text: 'IDIOMAS', style: 'sideTitle', margin: [0, 12, 0, 4] });
     normalizedLanguages.forEach(lang => sideStack.push({ text: `• ${lang}`, style: 'sideMeta' }));
+    sideStack.push({ canvas: [{ type: 'line', x1: 0, y1: 0, x2: 150, y2: 0, lineWidth: 0.5, lineColor: '#cbd5e1' }], margin: [0, 4, 0, 8] });
   }
 
   if (references.length) {
     sideStack.push({ text: 'REFERENCIAS', style: 'sideTitle', margin: [0, 12, 0, 4] });
     references.forEach(ref => sideStack.push({ text: `• ${ref}`, style: 'sideMeta' }));
+    sideStack.push({ canvas: [{ type: 'line', x1: 0, y1: 0, x2: 150, y2: 0, lineWidth: 0.5, lineColor: '#cbd5e1' }], margin: [0, 4, 0, 8] });
   }
 
   if (portfolio.length) {
@@ -408,12 +415,13 @@ async function generateTemplateTextPDF(tpl, waitModal) {
       const displayLabel = safeTitle || 'Portafolio';
       sideStack.push({ text: displayLabel, style: 'linkText', link: item.link ? (function () { try { return new URL(item.link, window.location.href).href; } catch (e) { return item.link; } })() : undefined });
     });
+    sideStack.push({ canvas: [{ type: 'line', x1: 0, y1: 0, x2: 150, y2: 0, lineWidth: 0.5, lineColor: '#cbd5e1' }], margin: [0, 4, 0, 8] });
   }
 
   const modernMain = [
     { text: name, style: 'nameModern' },
     { text: title, style: 'jobTitleModern' },
-    ...(bio ? [makeSectionTitle('PERFIL'), { text: bio, style: 'bodyText' }] : []),
+    ...(bio ? [makeSectionTitle('PERFIL'), { text: bio, style: 'bodyText' }, makeDivider([0, 4, 0, 10])] : []),
     ...expNodes,
     ...eduNodes,
     ...portfolioNodes

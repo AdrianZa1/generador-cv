@@ -41,14 +41,14 @@
       height: calc(100vh - 60px) !important;
     }
     .panel-form {
-      flex: 0 0 50% !important;
-      max-width: 50% !important;
+      flex: 0 0 30% !important;
+      max-width: 30% !important;
       min-width: 0 !important;
       overflow-y: auto !important;
     }
     .panel-preview {
-      flex: 0 0 50% !important;
-      max-width: 50% !important;
+      flex: 0 0 70% !important;
+      max-width: 70% !important;
       flex-shrink: 0 !important;
       overflow-y: auto !important;
     }
@@ -75,7 +75,7 @@
           if (!pp || !pf || !app) return;
           var headerH = header ? header.offsetHeight : 60;
           if (window.innerWidth >= 800) {
-            var previewWidth = Math.round(window.innerWidth * 0.5);
+            var previewWidth = Math.round(window.innerWidth * 0.7);
             pp.style.position = 'fixed';
             pp.style.right = '0';
             pp.style.top = headerH + 'px';

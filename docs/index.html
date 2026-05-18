@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Generador de CV Profesional</title>
-  <meta name="backend-url" content="">
+  <meta name="backend-url" content="https://generadorbacken.onrender.com">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="styles-form.css">
@@ -116,10 +116,11 @@
         <div style="display:flex; gap:8px; align-items:flex-start; width:100%">
           <textarea id="f-bio" placeholder="Breve descripción de tu experiencia y objetivos..." style="flex:1"></textarea>
           <div style="display:flex; align-items:flex-start; flex-direction:column; gap:6px">
-            <button class="add-btn" id="btn-improve-bio" type="button">Mejorar</button>
-            <button class="add-btn" id="btn-create-bio" type="button">Crear</button>
+            <button class="add-btn" id="btn-improve-bio" type="button"><i class="ti ti-sparkles"></i> Mejorar</button>
+            <button class="add-btn" id="btn-create-bio" type="button"><i class="ti ti-wand"></i> Crear</button>
           </div>
         </div>
+        <div class="bio-help">Si necesitas ayuda para crear o mejorar tu texto, dale a Crear y lo hacemos por ti.</div>
       </div>
 
       <div class="form-actions" style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px">
@@ -142,16 +143,16 @@
       </button>
 
       <div class="section-heading">Habilidades</div>
-      <div class="skill-chips" id="skill-chips"></div>
-      <div class="skill-input-row">
-        <input type="text" id="f-skill" placeholder="Ej: Comunicación, liderazgo, ventas..." style="flex:1">
-      </div>
+      <div id="skill-list"></div>
+      <button class="add-btn" id="add-skill" type="button">
+        <i class="ti ti-plus"></i> Añadir habilidad
+      </button>
 
       <div class="section-heading">Idiomas</div>
-      <div class="skill-chips" id="language-chips"></div>
-      <div class="skill-input-row">
-        <input type="text" id="f-language" placeholder="Ej: Español, Inglés" style="flex:1">
-      </div>
+      <div id="language-list"></div>
+      <button class="add-btn" id="add-language" type="button">
+        <i class="ti ti-plus"></i> Añadir idioma
+      </button>
 
       <div class="section-heading">Adjuntos opcionales</div>
       <div class="section-help">Si cuentas con portafolio web, certificados, proyectos o evidencias de trabajo, añádelos aquí. Si no aplica, puedes omitir esta sección.</div>

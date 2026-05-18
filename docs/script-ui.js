@@ -256,53 +256,62 @@ function updatePaletteVisibility() {
 }
 
 function addEntry(type) {
+  entries[type] = entries[type] || [];
+  if (typeof counters[type] === 'undefined') counters[type] = 0;
   const id = ++counters[type];
-  entries[type].push({ id, company: '', role: '', dates: '', desc: '' });
+  const empty = { id, company: '', role: '', dates: '', desc: '' };
+  entries[type].push(empty);
   renderEntries(type);
   sync();
+  requestAnimationFrame(() => {
+    const list = document.getElementById(type === 'exp' ? 'exp-list' : 'edu-list');
+    if (!list) return;
+    const inputs = list.querySelectorAll('input[data-entry-id]');
+    const last = inputs[inputs.length - 1];
+    if (last) last.focus();
+  });
 }
 
 function removeEntry(type, id) {
-  entries[type] = entries[type].filter(e => e.id !== id);
+  entries[type] = (entries[type] || []).filter(e => e.id !== id);
   renderEntries(type);
   sync();
 }
 
 function renderEntries(type) {
-  const container = document.getElementById(type + '-list');
+  const container = document.getElementById(type === 'exp' ? 'exp-list' : 'edu-list');
   if (!container) return;
   container.innerHTML = '';
-
-  entries[type].forEach(e => {
+  (entries[type] || []).forEach(e => {
     const div = document.createElement('div');
     div.className = 'entry-card';
     div.innerHTML = `
-      <button class="entry-remove" onclick="removeEntry('${type}', ${e.id})"><i class="ti ti-x"></i></button>
+      <button class="entry-remove" type="button" onclick="removeEntry('${type}', ${e.id})"><i class="ti ti-x"></i></button>
       <div class="field-row">
         <div>
-          <label>${type==='exp'?'Empresa':'Institución'}</label>
-          <input type="text" value="${esc(e.company)}" oninput="updateEntryText('${type}', ${e.id}, 'company', this)">
+          <label>${type === 'exp' ? 'Empresa' : 'Institución'}</label>
+          <input data-entry-id="${e.id}" type="text" value="${esc(e.company || '')}" oninput="updateEntryText('${type}', ${e.id}, 'company', this)">
         </div>
         <div>
-          <label>${type==='exp'?'Cargo':'Título'}</label>
-          <input type="text" value="${esc(e.role)}" oninput="updateEntryText('${type}', ${e.id}, 'role', this)">
+          <label>${type === 'exp' ? 'Cargo' : 'Título'}</label>
+          <input type="text" value="${esc(e.role || '')}" oninput="updateEntryText('${type}', ${e.id}, 'role', this)">
         </div>
       </div>
       <div class="field-row full" style="margin-top:8px">
         <label>Período</label>
-        <input type="text" placeholder="2024-2025 ene-dic" value="${esc(e.dates)}" onblur="autoFormatPeriod(this)" oninput="updateEntryText('${type}', ${e.id}, 'dates', this)">
+        <input type="text" placeholder="2024-2025 ene-dic" value="${esc(e.dates || '')}" onblur="autoFormatPeriod(this)" oninput="updateEntryText('${type}', ${e.id}, 'dates', this)">
       </div>
       ${type === 'exp' ? `
-        <div class="field-row full" style="margin-top:8px">
-          <label>Descripción</label>
-          <div style="display:flex; gap:8px; align-items:flex-start; width:100%">
-            <textarea placeholder="Una breve descripción" oninput="updateEntryText('${type}', ${e.id}, 'desc', this)">${esc(e.desc)}</textarea>
-            <div style="display:flex; align-items:flex-start; flex-direction:column; gap:6px">
-              <button class="add-btn" type="button" onclick="improveEntryDesc(${e.id})">Mejorar</button>
-              <button class="add-btn" type="button" onclick="createEntryDesc(${e.id})">Crear</button>
-            </div>
+      <div class="field-row full" style="margin-top:8px">
+        <label>Descripción</label>
+        <div style="display:flex; gap:8px; align-items:flex-start; width:100%">
+          <textarea placeholder="Una breve descripción" oninput="updateEntryText('${type}', ${e.id}, 'desc', this)">${esc(e.desc || '')}</textarea>
+          <div style="display:flex; align-items:flex-start; flex-direction:column; gap:6px">
+            <button class="add-btn" type="button" onclick="improveEntryDesc(${e.id})">Mejorar</button>
+            <button class="add-btn" type="button" onclick="createEntryDesc(${e.id})">Crear</button>
           </div>
-        </div>` : ''}
+        </div>
+      </div>` : ''}
     `;
     container.appendChild(div);
   });
@@ -493,31 +502,49 @@ function updateEntryText(type, id, field, el) {
 }
 
 function addSkill() {
-  const inp = document.getElementById('f-skill');
-  const v = inp.value.trim();
-  if (!v || skills.includes(v)) return;
-  skills.push(v);
-  inp.value = '';
-  renderSkillChips();
+  skills.push('');
+  renderSkillCards();
   sync();
-}
-
-function renderSkillChips() {
-  const c = document.getElementById('skill-chips');
-  if (!c) return;
-  c.innerHTML = '';
-  skills.forEach((s, idx) => {
-    const chip = document.createElement('span');
-    chip.className = 'skill-chip';
-    chip.innerHTML = `<span onclick="editSkill(${idx})" style="cursor:pointer">${esc(s)}</span><button onclick="removeSkill(${idx})">×</button>`;
-    c.appendChild(chip);
+  requestAnimationFrame(() => {
+    const list = document.getElementById('skill-list');
+    const inputs = list ? list.querySelectorAll('input[data-skill-index]') : [];
+    const last = inputs[inputs.length - 1];
+    if (last) last.focus();
   });
 }
 
-function removeSkill(idx) { skills.splice(idx, 1); renderSkillChips(); sync(); }
-function editSkill(idx) {
-  const newVal = prompt("Editar habilidad:", skills[idx]);
-  if (newVal !== null && newVal.trim() !== "") { skills[idx] = newVal.trim(); renderSkillChips(); sync(); }
+function renderSkillCards() {
+  const c = document.getElementById('skill-list');
+  if (!c) return;
+  c.innerHTML = '';
+  skills.forEach((skill, idx) => {
+    const card = document.createElement('div');
+    card.className = 'entry-card';
+    card.innerHTML = `
+      <button class="entry-remove" type="button" onclick="removeSkill(${idx})"><i class="ti ti-x"></i></button>
+      <div class="field-row full" style="margin-bottom:0">
+        <div>
+          <label>Habilidad</label>
+          <input type="text" value="${esc(skill)}" placeholder="Ej: Comunicación, liderazgo, ventas" data-skill-index="${idx}" oninput="updateSkillText(${idx}, this)">
+        </div>
+      </div>
+    `;
+    c.appendChild(card);
+  });
+}
+
+function updateSkillText(idx, el) {
+  let v = el.value;
+  if (autocorrectEnabled) v = autocorrectText(v, 'f-title');
+  skills[idx] = v;
+  if (v !== el.value) el.value = v;
+  sync();
+}
+
+function removeSkill(idx) {
+  skills.splice(idx, 1);
+  renderSkillCards();
+  sync();
 }
 
 function addLanguage() {
@@ -535,9 +562,11 @@ function renderLanguageChips() {
   if (!c) return;
   c.innerHTML = '';
   languages.forEach((l, idx) => {
+    const name = typeof l === 'string' ? l : (l.name || '');
+    const pct = typeof l === 'object' && typeof l.percent !== 'undefined' ? ` (${Number(l.percent) || 0}%)` : '';
     const chip = document.createElement('span');
     chip.className = 'skill-chip';
-    chip.innerHTML = `<span onclick="editLanguage(${idx})" style="cursor:pointer">${esc(l)}</span><button onclick="removeLanguage(${idx})">×</button>`;
+    chip.innerHTML = `<span onclick="editLanguage(${idx})" style="cursor:pointer">${esc(name)}${esc(pct)}</span><button onclick="removeLanguage(${idx})">×</button>`;
     c.appendChild(chip);
   });
 }
@@ -559,10 +588,10 @@ function addPortfolio() {
     showMessageModal('Primero selecciona el tipo de adjunto.', { title: 'Falta el tipo' });
     return;
   }
-  const title = titleEl.value.trim();
-  const link = linkEl.value.trim();
+  const title = titleEl ? titleEl.value.trim() : '';
+  const link = linkEl ? linkEl.value.trim() : '';
   const type = rawType;
-  const file = fileEl.files && fileEl.files[0];
+  const file = fileEl && fileEl.files ? fileEl.files[0] : null;
   if (!title && !link && !file) return;
   if (type === 'portafolio web' && !link) {
     showMessageModal('Para portafolio web, agrega el enlace.', { title: 'Falta el enlace' });
@@ -604,6 +633,62 @@ function addPortfolio() {
   if (linkEl) linkEl.value = '';
   addItem();
 }
+
+function renderLanguageCards() {
+  const container = document.getElementById('language-list');
+  if (!container) return;
+  container.innerHTML = '';
+  languages.forEach((l, idx) => {
+    const name = typeof l === 'string' ? l : (l.name || '');
+    const pct = typeof l === 'object' && typeof l.percent !== 'undefined' ? (Number(l.percent) || 0) : 0;
+    const card = document.createElement('div');
+    card.className = 'entry-card';
+    card.innerHTML = `
+      <button class="entry-remove" type="button" onclick="removeLanguageEntry(${idx})"><i class="ti ti-x"></i></button>
+      <div class="field-row">
+        <div style="flex:1">
+          <label>Idioma</label>
+          <input type="text" value="${esc(name)}" placeholder="Ej: Español, Inglés" oninput="updateLanguageName(${idx}, this)">
+        </div>
+        <div style="width:120px">
+          <label>Nivel (%)</label>
+          <input type="number" min="0" max="100" value="${esc(pct)}" oninput="updateLanguagePercent(${idx}, this)">
+        </div>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function addLanguageEntry() {
+  languages.push({ name: '', percent: 0 });
+  renderLanguageCards();
+  sync();
+  requestAnimationFrame(() => {
+    const list = document.getElementById('language-list');
+    const inputs = list ? list.querySelectorAll('input') : [];
+    const last = inputs[inputs.length - 1];
+    if (last) last.focus();
+  });
+}
+
+function updateLanguageName(idx, el) {
+  if (!languages[idx]) languages[idx] = { name: '', percent: 0 };
+  languages[idx].name = el.value;
+  sync();
+}
+
+function updateLanguagePercent(idx, el) {
+  if (!languages[idx]) languages[idx] = { name: '', percent: 0 };
+  let v = parseInt(el.value, 10);
+  if (isNaN(v)) v = 0;
+  if (v < 0) v = 0; if (v > 100) v = 100;
+  languages[idx].percent = v;
+  el.value = v;
+  sync();
+}
+
+function removeLanguageEntry(idx) { languages.splice(idx, 1); renderLanguageCards(); sync(); }
 
 function removePortfolio(id) {
   entries.portfolio = entries.portfolio.filter(item => item.id !== id);
@@ -1050,7 +1135,15 @@ function sync() {
     </div>`).join('')}</div>` : '';
 
   const skillsHTML = skills.length ? `<div class="cv-section"><div class="cv-section-title">Habilidades</div><div class="cv-skills-list">${skills.map(s => `<span class="cv-skill-tag">${esc(s)}</span>`).join('')}</div></div>` : '';
-  const languagesHTML = languages.length ? `<div class="cv-section"><div class="cv-section-title">Idiomas</div><div class="cv-skills-list">${languages.map(l => `<span class="cv-skill-tag">${esc(l)}</span>`).join('')}</div></div>` : '';
+  let languagesHTML = '';
+  if (languages && languages.length) {
+    const items = languages.map(l => {
+      const name = typeof l === 'string' ? l : (l.name || '');
+      const pct = typeof l === 'object' && typeof l.percent !== 'undefined' ? Number(l.percent) : null;
+      return `<span class="cv-skill-tag">${esc(name)}${pct !== null ? ' (' + esc(String(pct)) + '%)' : ''}</span>`;
+    }).join('');
+    languagesHTML = `<div class="cv-section"><div class="cv-section-title">Idiomas</div><div class="cv-skills-list">${items}</div></div>`;
+  }
   const portfolioHTML = entries.portfolio.length ? `<div class="cv-section"><div class="cv-section-title">Adjuntos opcionales</div><div class="cv-portfolio-list">${entries.portfolio.map(item => {
     const safeTitle = esc(item.title || item.fileName || 'Adjunto');
     const typeLabel = esc(item.type || 'otro');
@@ -1108,8 +1201,8 @@ function sync() {
 
 function boot() {
   initInputListeners();
-  renderSkillChips();
-  renderLanguageChips();
+  renderSkillCards();
+  renderLanguageCards();
   renderPortfolioItems();
   renderPaletteSelector();
   updatePortfolioFormVisibility();
@@ -1133,4 +1226,33 @@ function boot() {
   };
   tryShow();
 }
+
+window.addEntry = addEntry;
+window.showPage = showPage;
+window.addSkill = addSkill;
+window.renderSkillCards = renderSkillCards;
+window.addLanguage = addLanguage;
+window.renderLanguageChips = renderLanguageChips;
+window.renderLanguageCards = renderLanguageCards;
+window.addLanguageEntry = addLanguageEntry;
+window.updateLanguageName = updateLanguageName;
+window.updateLanguagePercent = updateLanguagePercent;
+window.removeLanguageEntry = removeLanguageEntry;
+window.addPortfolio = addPortfolio;
+window.renderPortfolioItems = renderPortfolioItems;
+window.updatePortfolioFormVisibility = updatePortfolioFormVisibility;
+window.updateReferencesVisibility = updateReferencesVisibility;
+window.renderPaletteSelector = renderPaletteSelector;
+window.updatePaletteVisibility = updatePaletteVisibility;
+window.sync = sync;
+window.showConfirmModal = showConfirmModal;
+window.showQuestionModal = showQuestionModal;
+window.showWaitingModal = showWaitingModal;
+window.showMessageModal = showMessageModal;
+window.promptForApiKey = promptForApiKey;
+window.createBioInteractive = createBioInteractive;
+window.improveBioInteractive = improveBioInteractive;
+window.startIntroTour = startIntroTour;
+window.setTutorialHint = setTutorialHint;
+window.clearTutorialHighlights = clearTutorialHighlights;
 

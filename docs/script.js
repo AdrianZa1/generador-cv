@@ -5,6 +5,12 @@ if (typeof BACKEND_URL === 'undefined') {
 
 // ===================== CONTROLADOR PRINCIPAL =====================
 function initInputListeners() {
+  const doSync = () => { if (typeof sync === 'function') sync(); };
+  const callGlobal = (name, ...args) => {
+    const fn = window[name];
+    if (typeof fn === 'function') return fn(...args);
+    return undefined;
+  };
   ['f-name', 'f-title', 'f-location', 'f-bio'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -14,7 +20,7 @@ function initInputListeners() {
       if (v !== this.value) this.value = v;
       // clear inline error when user types
       clearFieldError(id);
-      sync();
+      doSync();
     });
     el.addEventListener('keydown', function(e) {
       if (e.key !== 'Enter') return;
@@ -29,7 +35,7 @@ function initInputListeners() {
   // Listeners estáticos
   ['f-cedula', 'f-dob'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.addEventListener('input', sync);
+    if (el) el.addEventListener('input', doSync);
   });
 
   const dobInput = document.getElementById('f-dob');
@@ -38,7 +44,7 @@ function initInputListeners() {
   if (dobInput && dobPicker) {
     dobPicker.addEventListener('change', () => {
       dobInput.value = dobPicker.value || '';
-      sync();
+      doSync();
     });
   }
   if (dobPickerBtn && dobPicker) {
@@ -55,11 +61,8 @@ function initInputListeners() {
     });
   }
 
-  const skillInp = document.getElementById('f-skill');
-  if (skillInp) skillInp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addSkill(); } });
-
-  const langInp = document.getElementById('f-language');
-  if (langInp) langInp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addLanguage(); } });
+  const addLangBtn = document.getElementById('add-language');
+  if (addLangBtn) addLangBtn.addEventListener('click', () => callGlobal('addLanguageEntry'));
 
   const emailEl = document.getElementById('f-email');
   if (emailEl) emailEl.addEventListener('input', () => { validateEmail(); sync(); });
@@ -77,21 +80,23 @@ function initInputListeners() {
     const reader = new FileReader();
     reader.onload = e => { 
       document.getElementById('f-photo').value = e.target.result; 
-      sync(); 
+      doSync(); 
     };
     reader.readAsDataURL(this.files[0]);
   });
 
   // Botones de acción
   document.getElementById('download-pdf').onclick = downloadPDF;
-  document.getElementById('btn-next').onclick = () => showPage(2);
-  document.getElementById('btn-back').onclick = () => showPage(1);
-  document.getElementById('add-exp').onclick = () => addEntry('exp');
-  document.getElementById('add-edu').onclick = () => addEntry('edu');
+  document.getElementById('btn-next').onclick = () => callGlobal('showPage', 2);
+  document.getElementById('btn-back').onclick = () => callGlobal('showPage', 1);
+  document.getElementById('add-exp').onclick = () => callGlobal('addEntry', 'exp');
+  document.getElementById('add-edu').onclick = () => callGlobal('addEntry', 'edu');
+  const addSkillBtn = document.getElementById('add-skill');
+  if (addSkillBtn) addSkillBtn.onclick = addSkillEntry;
   const addPortfolioBtn = document.getElementById('btn-add-portfolio');
-  if (addPortfolioBtn) addPortfolioBtn.onclick = addPortfolio;
+  if (addPortfolioBtn) addPortfolioBtn.onclick = () => callGlobal('addPortfolio');
   const portfolioType = document.getElementById('f-portfolio-type');
-  if (portfolioType) portfolioType.addEventListener('change', updatePortfolioFormVisibility);
+  if (portfolioType) portfolioType.addEventListener('change', () => callGlobal('updatePortfolioFormVisibility'));
   const portfolioFile = document.getElementById('f-portfolio-file');
   if (portfolioFile) portfolioFile.addEventListener('change', () => {
     const file = portfolioFile.files && portfolioFile.files[0];
@@ -102,15 +107,70 @@ function initInputListeners() {
     }
   });
   const createBioBtn = document.getElementById('btn-create-bio');
-  if (createBioBtn) createBioBtn.onclick = createBioInteractive;
+  if (createBioBtn) createBioBtn.onclick = () => callGlobal('createBioInteractive');
   const improveBioBtn = document.getElementById('btn-improve-bio');
-  if (improveBioBtn) improveBioBtn.onclick = improveBioInteractive;
+  if (improveBioBtn) improveBioBtn.onclick = () => callGlobal('improveBioInteractive');
   const cfgAi = document.getElementById('btn-config-ai');
-  if (cfgAi) cfgAi.onclick = () => promptForApiKey();
+  if (cfgAi) cfgAi.onclick = () => callGlobal('promptForApiKey');
 
   const tplSel = document.getElementById('template-select');
-  if (tplSel) tplSel.addEventListener('change', () => { updateReferencesVisibility(); sync(); });
-  if (tplSel) tplSel.addEventListener('change', () => { updatePaletteVisibility(); });
+  if (tplSel) tplSel.addEventListener('change', () => { callGlobal('updateReferencesVisibility'); doSync(); });
+  if (tplSel) tplSel.addEventListener('change', () => { callGlobal('updatePaletteVisibility'); });
+}
+
+function renderSkillEntries() {
+  const list = document.getElementById('skill-list');
+  if (!list) return;
+  list.innerHTML = '';
+  skills.forEach((skill, idx) => {
+    const card = document.createElement('div');
+    card.className = 'entry-card';
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'entry-remove';
+    removeBtn.innerHTML = '<i class="ti ti-x"></i>';
+    removeBtn.addEventListener('click', () => {
+      skills.splice(idx, 1);
+      renderSkillEntries();
+      if (typeof sync === 'function') sync();
+    });
+
+    const row = document.createElement('div');
+    row.className = 'field-row full';
+    row.style.marginBottom = '0';
+
+    const wrap = document.createElement('div');
+    const label = document.createElement('label');
+    label.textContent = 'Habilidad';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = 'Ej: Comunicación, liderazgo, ventas';
+    input.value = skill || '';
+    input.addEventListener('input', function() {
+      skills[idx] = this.value;
+      if (typeof sync === 'function') sync();
+    });
+
+    wrap.appendChild(label);
+    wrap.appendChild(input);
+    row.appendChild(wrap);
+    card.appendChild(removeBtn);
+    card.appendChild(row);
+    list.appendChild(card);
+  });
+}
+
+function addSkillEntry() {
+  skills.push('');
+  renderSkillEntries();
+  if (typeof sync === 'function') sync();
+  requestAnimationFrame(() => {
+    const list = document.getElementById('skill-list');
+    const inputs = list ? list.querySelectorAll('input') : [];
+    const last = inputs[inputs.length - 1];
+    if (last) last.focus();
+  });
 }
 
 async function downloadPDF() {
@@ -403,20 +463,25 @@ async function mergePdfAttachments(basePdfBytes, attachments) {
 }
 
 function boot() {
+  const callGlobal = (name, ...args) => {
+    const fn = window[name];
+    if (typeof fn === 'function') return fn(...args);
+    return undefined;
+  };
   initInputListeners();
-  renderSkillChips();
-  renderLanguageChips();
-  renderPortfolioItems();
-  renderPaletteSelector();
-  updatePortfolioFormVisibility();
-  sync();
+  renderSkillEntries();
+  callGlobal('renderLanguageChips');
+  callGlobal('renderPortfolioItems');
+  callGlobal('renderPaletteSelector');
+  callGlobal('updatePortfolioFormVisibility');
+  callGlobal('sync');
   setTimeout(() => {
-    showConfirmModal('¿Necesitas o quieres un tutorial para usar la página?', (ok) => {
+    callGlobal('showConfirmModal', '¿Necesitas o quieres un tutorial para usar la página?', (ok) => {
       if (ok) {
-        startIntroTour();
+        callGlobal('startIntroTour');
       } else {
-        setTutorialHint('');
-        clearTutorialHighlights();
+        callGlobal('setTutorialHint', '');
+        callGlobal('clearTutorialHighlights');
       }
     }, { title: 'Tutorial inicial', yesText: 'Aceptar', noText: 'Cancelar' });
   }, 200);

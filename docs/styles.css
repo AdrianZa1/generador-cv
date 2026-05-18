@@ -85,6 +85,23 @@ header h1 {
   overflow-y: auto;
 }
 
+/* Strong override for desktop: force preview fixed to the right and keep form area clear */
+@media (min-width: 900px) {
+  .panel-preview {
+    position: fixed !important;
+    right: 0 !important;
+    top: 60px !important;
+    width: 560px !important;
+    height: calc(100vh - 60px) !important;
+    z-index: 50 !important;
+    background: #fff !important;
+    box-shadow: -6px 0 18px rgba(0,0,0,0.04) !important;
+  }
+  .panel-form {
+    margin-right: 560px !important;
+  }
+}
+
   .panel-preview {
     padding-top: 1rem;
   }

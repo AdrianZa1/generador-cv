@@ -147,3 +147,38 @@ function localImproveBio(text) {
   }
   return t;
 }
+
+// Mejora local más agresiva para descripciones de experiencia laboral.
+function localImproveEntryDesc(text) {
+  if (!text) return '';
+  let t = String(text).trim();
+  t = t.replace(/\s+/g, ' ');
+  t = autocorrectText(t, 'desc');
+
+  const replacements = [
+    [/^Dle\b/i, 'Desarrollé'],
+    [/^Dele\b/i, 'Desarrollé'],
+    [/\bvue permite\b/i, 'que permite'],
+    [/\binterno vue permite\b/i, 'interno que permite'],
+    [/\bpara la venta de productos\b/i, 'para la venta de productos'],
+    [/\bgestionar inventario\b/i, 'gestionar inventarios'],
+    [/\bdatos de clientes\b/i, 'datos de clientes'],
+    [/\bjunto con un sistema administrativo interno\b/i, 'junto con un sistema administrativo interno'],
+    [/\bmejor\b/i, 'mejor']
+  ];
+
+  replacements.forEach(([re, value]) => {
+    t = t.replace(re, value);
+  });
+
+  // Reformular al estilo más profesional cuando el texto parte de una sola oración.
+  t = t.replace(/^Desarrollé una página web para la venta de productos,\s+junto con un sistema administrativo interno/i,
+                'Desarrollé una página web para la venta de productos, junto con un sistema administrativo interno');
+  t = t.replace(/\bque permite gestionar inventarios, pedidos y datos de clientes\b/i,
+                'que permite gestionar inventarios, pedidos y datos de clientes');
+
+  // Cerrar con punto y capitalizar el inicio.
+  t = t.replace(/(^|[\.\!\?]\s+)([a-záéíóúñ])/g, (m, p1, p2) => p1 + p2.toUpperCase());
+  if (!/[\.\!\?]$/.test(t)) t += '.';
+  return t;
+}

@@ -335,46 +335,48 @@ function autoFormatPeriod(el) {
   }
 }
 
-function improveEntryDesc(id) {
-  // For now, reuse the create flow but prefill with existing desc to help improve
+async function improveEntryDesc(id) {
   const entry = entries.exp.find(x => x.id === id);
   if (!entry) return showMessageModal('Entrada no encontrada', { title: 'Error' });
-  const questions = [
-    { q: `¿Cuál era tu responsabilidad principal en ${entry.role || 'este puesto'}?`, placeholder: 'Describe brevemente responsabilidades' },
-    { q: 'Menciona un logro clave que quieras destacar', placeholder: 'Ej: incrementé ventas, organicé procesos, mejoré atención' },
-    { q: '¿Qué herramientas, recursos o métodos usaste?', placeholder: 'Ej: Excel, atención al cliente, maquinaria, software' },
-    { q: '¿Qué impacto tuvo tu trabajo en el equipo o área?', placeholder: 'Ej: mejoré tiempos, reduje errores, aumenté productividad' },
-    { q: 'Resumen final en una frase', placeholder: 'Una frase concisa sobre tu rol' }
-  ];
-  showQuestionModal({ title: 'Mejorar descripción', intro: 'Responder 5 preguntas para generar el texto.', questions }, (answers) => {
-    showConfirmModal('¿Quieres que la IA genere la descripción? (recomendado)', async (useAI) => {
-      if (useAI) {
-        // ensure key
-        const proceedWithAI = async () => {
-          const wait = showWaitingModal('Generando con IA...');
-          try {
-            const system = 'Eres un asistente que genera descripciones profesionales para CV en español. Mantén máximo 150 palabras.';
-            const userPrompt = `Contexto: experiencia en ${entry.company||''} como ${entry.role||''}. Respuestas: ${answers.join(' | ')}`;
-            let out = await callOpenAI(system, userPrompt);
-            out = truncateWords(out, 150);
-            if (!out) out = generateTextFromAnswers('exp', answers, { company: entry.company, role: entry.role });
-            entry.desc = out;
-            renderEntries('exp'); sync(); showMessageModal('Descripción mejorada y aplicada', { title: 'Hecho' });
-          } catch (err) {
-            console.error(err);
-            const fallback = generateTextFromAnswers('exp', answers, { company: entry.company, role: entry.role });
-            entry.desc = fallback; renderEntries('exp'); sync(); showMessageModal('No se pudo usar la IA, se aplicó una descripción generada localmente', { title: 'Aviso' });
-          } finally { try { wait.close(); } catch(e){} }
-        };
-        if (!getAIKey()) {
-          promptForApiKey((k) => { if (k) proceedWithAI(); else showMessageModal('Clave no guardada, usando generación local.', { title: 'Aviso' }); });
-        } else proceedWithAI();
-      } else {
-        const gen = generateTextFromAnswers('exp', answers, { company: entry.company, role: entry.role });
-        entry.desc = gen; renderEntries('exp'); sync(); showMessageModal('Descripción mejorada y aplicada', { title: 'Hecho' });
-      }
-    });
-  });
+
+  const current = String(entry.desc || '').trim();
+  if (!current) {
+    showMessageModal('Primero escribe una descripción para poder mejorarla.', { title: 'Aviso' });
+    return;
+  }
+
+  const applyImprovement = (text) => {
+    const improved = String(text || '').trim();
+    if (!improved) return;
+    entry.desc = improved;
+    renderEntries('exp');
+    sync();
+    showMessageModal('Descripción mejorada y aplicada', { title: 'Hecho' });
+  };
+
+  const localImprovement = () => {
+    const improved = (typeof localImproveEntryDesc === 'function') ? localImproveEntryDesc(current) : localImproveBio(current);
+    applyImprovement(improved);
+  };
+
+  if (typeof getAIKey === 'function' && getAIKey()) {
+    const wait = showWaitingModal('Mejorando con IA...');
+    try {
+      const system = 'Eres un asistente que mejora descripciones profesionales para CV en español. Conserva el significado, usa tono formal y máximo 150 palabras.';
+      const userPrompt = `Mejora este texto de experiencia laboral sin hacer preguntas y sin cambiar los datos importantes. Texto: "${current}"`;
+      let out = await callOpenAI(system, userPrompt);
+      out = truncateWords(out, 150);
+      applyImprovement(out || ((typeof localImproveEntryDesc === 'function') ? localImproveEntryDesc(current) : localImproveBio(current)));
+    } catch (err) {
+      console.error(err);
+      localImprovement();
+    } finally {
+      try { wait.close(); } catch (e) {}
+    }
+    return;
+  }
+
+  localImprovement();
 }
 
 function createEntryDesc(id) {

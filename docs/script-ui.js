@@ -1174,21 +1174,6 @@ function sync() {
       </div>`;
   }
 
-  // Force inline visible styles on generated template to avoid theme/cached CSS hiding it
-  try {
-    const tplEl = output.querySelector('.cv-template');
-    if (tplEl) {
-      tplEl.style.background = '#ffffff';
-      tplEl.style.color = '#0f1723';
-      tplEl.style.padding = '18px';
-      tplEl.style.minHeight = '180px';
-      tplEl.style.boxSizing = 'border-box';
-      tplEl.style.boxShadow = '0 6px 18px rgba(0,0,0,0.06)';
-      tplEl.style.display = 'block';
-      tplEl.style.margin = '0 auto';
-    }
-  } catch (e) { console.warn('Could not apply inline preview styles', e); }
-
   if (tutorialState && tutorialState.active && tutorialState.steps[tutorialState.step]?.selector === '.cv-name') {
     const previewName = output.querySelector('.cv-name');
     if (previewName) previewName.classList.add('tutorial-preview-focus');
@@ -1225,42 +1210,5 @@ function boot() {
     if (Date.now() - start < 2000) setTimeout(tryShow, 50);
   };
   tryShow();
-  // Ensure preview is pinned to the right on desktop sizes (persistent on reload)
-  const enforcePreviewRight = () => {
-    try {
-      const pp = document.querySelector('.panel-preview');
-      const pf = document.querySelector('.panel-form');
-      const app = document.querySelector('.app');
-      if (!pp || !pf || !app) return;
-      if (window.innerWidth >= 900) {
-        pp.style.position = 'fixed';
-        pp.style.right = '0';
-        pp.style.top = '60px';
-        pp.style.width = '560px';
-        pp.style.height = 'calc(100vh - 60px)';
-        pp.style.zIndex = '9999';
-        pp.style.background = '#fff';
-        pp.style.boxShadow = '-6px 0 18px rgba(0,0,0,0.04)';
-        pp.style.overflowY = 'auto';
-        pf.style.marginRight = '560px';
-        app.style.gridTemplateColumns = '1fr 560px';
-      } else {
-        // restore defaults for mobile
-        pp.style.position = '';
-        pp.style.right = '';
-        pp.style.top = '';
-        pp.style.width = '';
-        pp.style.height = '';
-        pp.style.zIndex = '';
-        pp.style.background = '';
-        pp.style.boxShadow = '';
-        pp.style.overflowY = '';
-        pf.style.marginRight = '';
-        app.style.gridTemplateColumns = '';
-      }
-    } catch (e) { console.warn('enforcePreviewRight error', e); }
-  };
-  enforcePreviewRight();
-  window.addEventListener('resize', enforcePreviewRight);
 }
 

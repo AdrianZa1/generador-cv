@@ -36,11 +36,19 @@ header h1 {
 }
 
 .app {
-  display: grid;
-  /* Left: flexible form, Right: fixed preview column for consistent side-by-side layout */
-  grid-template-columns: minmax(420px, 1fr) 560px;
+  display: flex;
   height: calc(100vh - 60px);
-  gap: 0;
+}
+
+.panel-form {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.panel-preview {
+  width: 560px;
+  flex-shrink: 0;
+  overflow-y: auto;
 }
 
 @media (max-width: 1199px) {
@@ -77,30 +85,6 @@ header h1 {
 .panel-form { grid-column: 1; }
 .panel-preview { grid-column: 2; align-self: start; }
 
-/* Keep preview visible on the right and scroll independently */
-.panel-preview {
-  position: sticky;
-  top: 60px; /* below header */
-  height: calc(100vh - 60px);
-  overflow-y: auto;
-}
-
-/* Strong override for desktop: force preview fixed to the right and keep form area clear */
-@media (min-width: 900px) {
-  .panel-preview {
-    position: fixed !important;
-    right: 0 !important;
-    top: 60px !important;
-    width: 560px !important;
-    height: calc(100vh - 60px) !important;
-    z-index: 50 !important;
-    background: #fff !important;
-    box-shadow: -6px 0 18px rgba(0,0,0,0.04) !important;
-  }
-  .panel-form {
-    margin-right: 560px !important;
-  }
-}
 
   .panel-preview {
     padding-top: 1rem;

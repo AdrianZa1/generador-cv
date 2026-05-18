@@ -345,38 +345,54 @@ async function improveEntryDesc(id) {
     return;
   }
 
-  const applyImprovement = (text) => {
-    const improved = String(text || '').trim();
-    if (!improved) return;
-    entry.desc = improved;
-    renderEntries('exp');
-    sync();
-    showMessageModal('Descripción mejorada y aplicada', { title: 'Hecho' });
-  };
+  showChoiceModal(
+    {
+      title: 'Elegir estilo',
+      intro: 'Selecciona el estilo para reescribir la descripción.',
+      choices: [
+        { label: 'Profesional', value: 'profesional' },
+        { label: 'Formal', value: 'formal' },
+        { label: 'Otro estilo', value: 'otro' }
+      ]
+    },
+    async (style) => {
+      const styleLabel = style === 'formal' ? 'formal' : style === 'otro' ? 'creativo y claro' : 'profesional';
+      const applyImprovement = (text) => {
+        const improved = String(text || '').trim();
+        if (!improved) return;
+        entry.desc = improved;
+        renderEntries('exp');
+        sync();
+        showMessageModal('Descripción mejorada y aplicada', { title: 'Hecho' });
+      };
 
-  const localImprovement = () => {
-    const improved = (typeof localImproveEntryDesc === 'function') ? localImproveEntryDesc(current) : localImproveBio(current);
-    applyImprovement(improved);
-  };
+      const localImprovement = () => {
+        const improved = (typeof localImproveEntryDesc === 'function')
+          ? localImproveEntryDesc(current, styleLabel)
+          : localImproveBio(current);
+        applyImprovement(improved);
+      };
 
-  if (typeof getAIKey === 'function' && getAIKey()) {
-    const wait = showWaitingModal('Mejorando con IA...');
-    try {
-      const system = 'Eres un asistente que mejora descripciones profesionales para CV en español. Conserva el significado, usa tono formal y máximo 150 palabras.';
-      const userPrompt = `Mejora este texto de experiencia laboral sin hacer preguntas y sin cambiar los datos importantes. Texto: "${current}"`;
-      let out = await callOpenAI(system, userPrompt);
-      out = truncateWords(out, 150);
-      applyImprovement(out || ((typeof localImproveEntryDesc === 'function') ? localImproveEntryDesc(current) : localImproveBio(current)));
-    } catch (err) {
-      console.error(err);
+      if (typeof getAIKey === 'function' && getAIKey()) {
+        const wait = showWaitingModal('Mejorando con IA...');
+        try {
+          const system = `Eres un asistente que mejora descripciones profesionales para CV en español. Reescribe el texto con estilo ${styleLabel}, mantén el significado, usa tono natural y máximo 150 palabras.`;
+          const userPrompt = `Mejora este texto de experiencia laboral en estilo ${styleLabel}, sin hacer preguntas y sin cambiar los datos importantes. Texto: "${current}"`;
+          let out = await callOpenAI(system, userPrompt);
+          out = truncateWords(out, 150);
+          applyImprovement(out || ((typeof localImproveEntryDesc === 'function') ? localImproveEntryDesc(current, styleLabel) : localImproveBio(current)));
+        } catch (err) {
+          console.error(err);
+          localImprovement();
+        } finally {
+          try { wait.close(); } catch (e) {}
+        }
+        return;
+      }
+
       localImprovement();
-    } finally {
-      try { wait.close(); } catch (e) {}
     }
-    return;
-  }
-
-  localImprovement();
+  );
 }
 
 function createEntryDesc(id) {
@@ -897,6 +913,28 @@ function showConfirmModal(message, onConfirm, options = {}) {
   const no = overlay.querySelector('#__no');
   yes.onclick = () => { overlay.remove(); if (typeof onConfirm === 'function') onConfirm(true); };
   no.onclick = () => { overlay.remove(); if (typeof onConfirm === 'function') onConfirm(false); };
+  return { close: () => overlay.remove() };
+}
+
+function showChoiceModal(options, onChoose) {
+  const root = document.getElementById('modal-root');
+  const overlay = document.createElement('div'); overlay.className = 'modal-overlay';
+  const title = options.title || 'Elegir opción';
+  const intro = options.intro || '';
+  const choices = Array.isArray(options.choices) ? options.choices : [];
+  overlay.innerHTML = `
+    <div class="modal style-glass style-accent">
+      <div class="modal-header"><div><div class="modal-title">${esc(title)}</div><div class="modal-sub">${esc(intro)}</div></div></div>
+      <div class="modal-body" style="display:flex; flex-direction:column; gap:8px">${choices.map((choice, idx) => `<button class="btn primary" data-choice="${esc(choice.value || String(idx))}" style="justify-content:flex-start">${esc(choice.label || choice.value || ('Opción ' + (idx + 1)))}</button>`).join('')}</div>
+    </div>`;
+  root.appendChild(overlay);
+  overlay.querySelectorAll('[data-choice]').forEach(btn => {
+    btn.onclick = () => {
+      const value = btn.getAttribute('data-choice');
+      overlay.remove();
+      if (typeof onChoose === 'function') onChoose(value);
+    };
+  });
   return { close: () => overlay.remove() };
 }
 

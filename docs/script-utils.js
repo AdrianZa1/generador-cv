@@ -149,15 +149,23 @@ function localImproveBio(text) {
 }
 
 // Mejora local más agresiva para descripciones de experiencia laboral.
-function localImproveEntryDesc(text) {
+function localImproveEntryDesc(text, style = 'profesional') {
   if (!text) return '';
   let t = String(text).trim();
   t = t.replace(/\s+/g, ' ');
   t = autocorrectText(t, 'desc');
 
+  const styleMode = String(style || 'profesional').toLowerCase();
+  const introMap = {
+    profesional: 'Desarrollé',
+    formal: 'Me desempeñé en',
+    otro: 'Participé en'
+  };
+  const actionIntro = introMap[styleMode] || introMap.profesional;
+
   const replacements = [
-    [/^Dle\b/i, 'Desarrollé'],
-    [/^Dele\b/i, 'Desarrollé'],
+    [/^Dle\b/i, actionIntro],
+    [/^Dele\b/i, actionIntro],
     [/\bvue permite\b/i, 'que permite'],
     [/\binterno vue permite\b/i, 'interno que permite'],
     [/\bpara la venta de productos\b/i, 'para la venta de productos'],
@@ -171,9 +179,21 @@ function localImproveEntryDesc(text) {
     t = t.replace(re, value);
   });
 
+  if (styleMode === 'formal') {
+    t = t.replace(/^Desarrollé\b/i, 'Me desempeñé en');
+    t = t.replace(/^Participé en\b/i, 'Me desempeñé en');
+  } else if (styleMode === 'otro') {
+    t = t.replace(/^Desarrollé\b/i, 'Contribuí en');
+    t = t.replace(/^Me desempeñé en\b/i, 'Contribuí en');
+  }
+
   // Reformular al estilo más profesional cuando el texto parte de una sola oración.
   t = t.replace(/^Desarrollé una página web para la venta de productos,\s+junto con un sistema administrativo interno/i,
                 'Desarrollé una página web para la venta de productos, junto con un sistema administrativo interno');
+  t = t.replace(/^Me desempeñé en una página web para la venta de productos,\s+junto con un sistema administrativo interno/i,
+                'Me desempeñé en el desarrollo de una página web para la venta de productos, junto con un sistema administrativo interno');
+  t = t.replace(/^Contribuí en una página web para la venta de productos,\s+junto con un sistema administrativo interno/i,
+                'Contribuí en el desarrollo de una página web para la venta de productos, junto con un sistema administrativo interno');
   t = t.replace(/\bque permite gestionar inventarios, pedidos y datos de clientes\b/i,
                 'que permite gestionar inventarios, pedidos y datos de clientes');
 

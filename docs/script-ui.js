@@ -350,9 +350,9 @@ async function improveEntryDesc(id) {
       title: 'Elegir estilo',
       intro: 'Selecciona el estilo para reescribir la descripción.',
       choices: [
-        { label: 'Profesional', value: 'profesional' },
-        { label: 'Formal', value: 'formal' },
-        { label: 'Otro estilo', value: 'otro' }
+        { label: 'Ejecutivo', value: 'profesional' },
+        { label: 'Corporativo', value: 'formal' },
+        { label: 'Conversacional profesional', value: 'otro' }
       ]
     },
     async (style) => {

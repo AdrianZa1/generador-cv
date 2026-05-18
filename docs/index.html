@@ -33,6 +33,24 @@
     .add-btn.icon-left { display:inline-flex; align-items:center }
     /* Keep buttons compact and visually aligned with the textarea */
     .bio-actions .add-btn { min-width:0; width:120px; padding:8px 10px; box-sizing:border-box; font-size:13px }
+    
+    /* FORCE TWO-COLUMN LAYOUT ON DESKTOP */
+    .app {
+      display: flex !important;
+      flex-direction: row !important;
+      height: calc(100vh - 60px) !important;
+    }
+    .panel-form {
+      flex: 1 !important;
+      min-width: 0 !important;
+      overflow-y: auto !important;
+    }
+    .panel-preview {
+      width: 560px !important;
+      flex-shrink: 0 !important;
+      overflow-y: auto !important;
+    }
+  </style>
     @media (max-width:720px) {
       .bio-actions .add-btn { width:100%; }
     }

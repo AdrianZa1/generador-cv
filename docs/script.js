@@ -32,6 +32,29 @@ function initInputListeners() {
     if (el) el.addEventListener('input', sync);
   });
 
+  const dobInput = document.getElementById('f-dob');
+  const dobPicker = document.getElementById('f-dob-picker');
+  const dobPickerBtn = document.getElementById('f-dob-picker-btn');
+  if (dobInput && dobPicker) {
+    dobPicker.addEventListener('change', () => {
+      dobInput.value = dobPicker.value || '';
+      sync();
+    });
+  }
+  if (dobPickerBtn && dobPicker) {
+    dobPickerBtn.addEventListener('click', () => {
+      if (dobInput && dobInput.value) {
+        dobPicker.value = dobInput.value;
+      }
+      dobPicker.focus();
+      if (typeof dobPicker.showPicker === 'function') {
+        dobPicker.showPicker();
+      } else {
+        dobPicker.click();
+      }
+    });
+  }
+
   const skillInp = document.getElementById('f-skill');
   if (skillInp) skillInp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addSkill(); } });
 

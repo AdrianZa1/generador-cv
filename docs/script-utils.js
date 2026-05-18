@@ -129,13 +129,21 @@ async function animateTextareaTyping(textarea, newText, onProgress) {
 }
 
 // Mejora local básica del texto del resumen profesional (sin IA)
-function localImproveBio(text) {
+function localImproveBio(text, style = 'profesional') {
   if (!text) return '';
   let t = String(text).trim();
   // Normalizar espacios
   t = t.replace(/\s+/g, ' ');
   // Aplicar autocorrecciones heurísticas
   t = autocorrectText(t, 'f-bio');
+
+  const styleMode = String(style || 'profesional').toLowerCase();
+  if (styleMode === 'formal') {
+    t = t.replace(/^soy\b/i, 'Cuenta con');
+  } else if (styleMode === 'otro') {
+    t = t.replace(/^soy\b/i, 'Es un profesional con');
+  }
+
   // Capitalizar inicio de oraciones
   t = t.replace(/(^|[\.\!\?]\s+)([a-záéíóúñ])/g, (m, p1, p2) => p1 + p2.toUpperCase());
   // Asegurar punto final

@@ -461,37 +461,52 @@ function createBioInteractive() {
 }
 
 function improveBioInteractive() {
-  // Mejora inmediata y silenciosa del texto del resumen profesional.
   const bioEl = document.getElementById('f-bio');
   if (!bioEl) return;
   const current = bioEl.value || '';
   if (!current.trim()) { showMessageModal('El resumen está vacío. Escribe algo y vuelve a intentar.', { title: 'Aviso' }); return; }
 
-  const tryLocal = (replacement) => {
-    const improved = replacement || localImproveBio(current);
-    // Animar escritura y actualizar
-    animateTextareaTyping(bioEl, improved, () => {} ).then(() => { sync(); showMessageModal('Resumen mejorado', { title: 'Listo' }); });
-  };
+  showChoiceModal(
+    {
+      title: 'Elegir estilo',
+      intro: 'Selecciona el estilo para reescribir tu resumen profesional.',
+      choices: [
+        { label: 'Profesional', value: 'profesional' },
+        { label: 'Formal', value: 'formal' },
+        { label: 'Otro estilo', value: 'otro' }
+      ]
+    },
+    (style) => {
+      const styleLabel = style === 'formal' ? 'formal' : style === 'otro' ? 'creativo y claro' : 'profesional';
 
-  // Si hay clave de IA, usarla automáticamente; si no, usar mejora local.
-  if (typeof getAIKey === 'function' && getAIKey()) {
-    const wait = showWaitingModal('Mejorando con IA...');
-    (async () => {
-      try {
-        const system = 'Eres un asistente que mejora y formaliza resúmenes profesionales en español. Mantén máximo 150 palabras y lenguaje formal.';
-        const userPrompt = `Mejora este resumen profesional, mantén el sentido pero hazlo más formal y profesional. Texto: "${current}"`;
-        let out = await callOpenAI(system, userPrompt);
-        out = (typeof truncateWords === 'function') ? truncateWords(out, 150) : out;
-        if (!out || !out.trim()) throw new Error('IA no devolvió texto');
-        tryLocal(out.trim());
-      } catch (err) {
-        console.error('IA mejora fallida:', err);
+      const tryLocal = (replacement) => {
+        const improved = replacement || localImproveBio(current, style);
+        animateTextareaTyping(bioEl, improved, () => {}).then(() => {
+          sync();
+          showMessageModal('Resumen mejorado', { title: 'Listo' });
+        });
+      };
+
+      if (typeof getAIKey === 'function' && getAIKey()) {
+        const wait = showWaitingModal('Mejorando con IA...');
+        (async () => {
+          try {
+            const system = `Eres un asistente que mejora y formaliza resúmenes profesionales en español. Reescribe el texto con estilo ${styleLabel}, mantén máximo 150 palabras y no copies literalmente.`;
+            const userPrompt = `Mejora este resumen profesional en estilo ${styleLabel}, mantén el sentido pero hazlo más natural y profesional. Texto: "${current}"`;
+            let out = await callOpenAI(system, userPrompt);
+            out = (typeof truncateWords === 'function') ? truncateWords(out, 150) : out;
+            if (!out || !out.trim()) throw new Error('IA no devolvió texto');
+            tryLocal(out.trim());
+          } catch (err) {
+            console.error('IA mejora fallida:', err);
+            tryLocal();
+          } finally { try { wait.close(); } catch(e){} }
+        })();
+      } else {
         tryLocal();
-      } finally { try { wait.close(); } catch(e){} }
-    })();
-  } else {
-    tryLocal();
-  }
+      }
+    }
+  );
 }
 
 function updateEntryText(type, id, field, el) {

@@ -38,10 +38,12 @@ header h1 {
 .app {
   display: flex;
   height: calc(100vh - 60px);
+  gap: 0;
 }
 
 .panel-form {
   flex: 1;
+  min-width: 0;
   overflow-y: auto;
 }
 

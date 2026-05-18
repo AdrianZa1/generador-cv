@@ -356,7 +356,7 @@ async function improveEntryDesc(id) {
       ]
     },
     async (style) => {
-      const styleLabel = style === 'formal' ? 'formal' : style === 'otro' ? 'creativo y claro' : 'profesional';
+      const styleLabel = style === 'formal' ? 'corporativo' : style === 'otro' ? 'conversacional profesional' : 'ejecutivo';
       const applyImprovement = (text) => {
         const improved = String(text || '').trim();
         if (!improved) return;
@@ -471,13 +471,13 @@ function improveBioInteractive() {
       title: 'Elegir estilo',
       intro: 'Selecciona el estilo para reescribir tu resumen profesional.',
       choices: [
-        { label: 'Profesional', value: 'profesional' },
-        { label: 'Formal', value: 'formal' },
-        { label: 'Otro estilo', value: 'otro' }
+        { label: 'Ejecutivo', value: 'profesional' },
+        { label: 'Corporativo', value: 'formal' },
+        { label: 'Conversacional profesional', value: 'otro' }
       ]
     },
     (style) => {
-      const styleLabel = style === 'formal' ? 'formal' : style === 'otro' ? 'creativo y claro' : 'profesional';
+      const styleLabel = style === 'formal' ? 'corporativo' : style === 'otro' ? 'conversacional profesional' : 'ejecutivo';
 
       const tryLocal = (replacement) => {
         const improved = replacement || localImproveBio(current, style);

@@ -41,6 +41,26 @@ header h1 {
   height: calc(100vh - 60px);
 }
 
+/* Mobile: stack form above preview, keep desktop layout unchanged */
+@media (max-width: 768px) {
+  .app {
+    grid-template-columns: 1fr;
+    height: auto; /* allow natural height on phones */
+  }
+  .panel-form {
+    order: 1;
+    max-height: 60vh;
+    overflow-y: auto;
+    border-right: none;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  .panel-preview {
+    order: 2;
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+}
+
 /* Modal & button improvements */
 .modal-overlay {
   position: fixed;

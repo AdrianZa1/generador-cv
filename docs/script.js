@@ -148,7 +148,10 @@ function renderSkillEntries() {
     input.placeholder = 'Ej: Comunicación, liderazgo, ventas';
     input.value = skill || '';
     input.addEventListener('input', function() {
-      skills[idx] = this.value;
+      let v = this.value;
+      if (typeof autocorrectEnabled !== 'undefined' && autocorrectEnabled) v = autocorrectText(v, 'f-title');
+      if (v !== this.value) this.value = v;
+      skills[idx] = v;
       if (typeof sync === 'function') sync();
     });
 

@@ -674,7 +674,10 @@ function addLanguageEntry() {
 
 function updateLanguageName(idx, el) {
   if (!languages[idx]) languages[idx] = { name: '', percent: 0 };
-  languages[idx].name = el.value;
+  let v = el.value;
+  if (typeof autocorrectEnabled !== 'undefined' && autocorrectEnabled) v = autocorrectText(v, 'f-title');
+  if (v !== el.value) el.value = v;
+  languages[idx].name = v;
   sync();
 }
 

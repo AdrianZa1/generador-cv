@@ -496,14 +496,15 @@ function boot() {
       if (!pp || !pf || !app) return;
       const headerH = header ? header.offsetHeight : 60;
       if (window.innerWidth >= 800) {
+        const previewWidth = Math.max(360, Math.round(window.innerWidth * 0.4));
         pp.style.position = 'fixed';
         pp.style.right = '0';
         pp.style.top = headerH + 'px';
-        pp.style.width = '560px';
+        pp.style.width = previewWidth + 'px';
         pp.style.height = `calc(100vh - ${headerH}px)`;
         pp.style.zIndex = '9999';
         pp.style.overflowY = 'auto';
-        pf.style.marginRight = '560px';
+        pf.style.marginRight = previewWidth + 'px';
         pf.style.minWidth = '0';
         app.style.display = 'flex';
         app.style.flexDirection = 'row';

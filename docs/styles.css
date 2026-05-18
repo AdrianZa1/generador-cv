@@ -42,13 +42,15 @@ header h1 {
 }
 
 .panel-form {
-  flex: 1;
+  flex: 0 0 60%;
+  max-width: 60%;
   min-width: 0;
   overflow-y: auto;
 }
 
 .panel-preview {
-  width: 560px;
+  flex: 0 0 40%;
+  max-width: 40%;
   flex-shrink: 0;
   overflow-y: auto;
 }

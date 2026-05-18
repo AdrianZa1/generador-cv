@@ -41,12 +41,14 @@
       height: calc(100vh - 60px) !important;
     }
     .panel-form {
-      flex: 1 !important;
+      flex: 0 0 60% !important;
+      max-width: 60% !important;
       min-width: 0 !important;
       overflow-y: auto !important;
     }
     .panel-preview {
-      width: 560px !important;
+      flex: 0 0 40% !important;
+      max-width: 40% !important;
       flex-shrink: 0 !important;
       overflow-y: auto !important;
     }
@@ -73,13 +75,14 @@
           if (!pp || !pf || !app) return;
           var headerH = header ? header.offsetHeight : 60;
           if (window.innerWidth >= 800) {
+            var previewWidth = Math.max(360, Math.round(window.innerWidth * 0.4));
             pp.style.position = 'fixed';
             pp.style.right = '0';
             pp.style.top = headerH + 'px';
-            pp.style.width = '560px';
+            pp.style.width = previewWidth + 'px';
             pp.style.height = 'calc(100vh - ' + headerH + 'px)';
             pp.style.zIndex = '9999';
-            pf.style.marginRight = '560px';
+            pf.style.marginRight = previewWidth + 'px';
             pf.style.minWidth = '0';
             app.style.display = 'flex';
             app.style.flexDirection = 'row';

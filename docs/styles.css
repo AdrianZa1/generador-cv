@@ -43,7 +43,7 @@ header h1 {
   gap: 0;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1199px) {
   header {
     padding: 0.9rem 1rem;
     flex-wrap: wrap;

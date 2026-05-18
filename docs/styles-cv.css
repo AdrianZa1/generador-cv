@@ -113,4 +113,4 @@
 .cv-skill-tag::before { content: "• "; color: #1a1a1a; }
 
 .placeholder { color: #bbb; font-style: italic; }
-@media (max-width: 768px) { .panel-preview { min-height: 500px; } }
+@media (max-width: 1199px) { .panel-preview { min-height: 500px; } }

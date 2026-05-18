@@ -481,10 +481,9 @@ function improveBioInteractive() {
 
       const tryLocal = (replacement) => {
         const improved = replacement || localImproveBio(current, style);
-        animateTextareaTyping(bioEl, improved, () => {}).then(() => {
-          sync();
-          showMessageModal('Resumen mejorado', { title: 'Listo' });
-        });
+        bioEl.value = improved;
+        sync();
+        showMessageModal('Resumen mejorado', { title: 'Listo' });
       };
 
       if (typeof getAIKey === 'function' && getAIKey()) {
@@ -495,8 +494,20 @@ function improveBioInteractive() {
             const userPrompt = `Mejora este resumen profesional en estilo ${styleLabel}, mantén el sentido pero hazlo más natural y profesional. Texto: "${current}"`;
             let out = await callOpenAI(system, userPrompt);
             out = (typeof truncateWords === 'function') ? truncateWords(out, 150) : out;
-            if (!out || !out.trim()) throw new Error('IA no devolvió texto');
-            tryLocal(out.trim());
+            const normalizedCurrent = current.trim().toLowerCase();
+            const normalizedOut = String(out || '').trim().toLowerCase();
+            if (!out || !out.trim() || normalizedOut === normalizedCurrent) {
+              const retrySystem = `Reescribe completamente el resumen profesional con estilo ${styleLabel}. No repitas frases del texto original y devuelve una versión nueva.`;
+              const retryPrompt = `Texto original: "${current}". Devuelve un resumen distinto, claro y profesional, en un solo párrafo.`;
+              const retry = await callOpenAI(retrySystem, retryPrompt);
+              out = (typeof truncateWords === 'function') ? truncateWords(retry, 150) : retry;
+            }
+            const finalOut = String(out || '').trim();
+            if (!finalOut || finalOut.toLowerCase() === normalizedCurrent) {
+              tryLocal();
+            } else {
+              tryLocal(finalOut);
+            }
           } catch (err) {
             console.error('IA mejora fallida:', err);
             tryLocal();

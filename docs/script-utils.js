@@ -131,29 +131,35 @@ async function animateTextareaTyping(textarea, newText, onProgress) {
 // Mejora local básica del texto del resumen profesional (sin IA)
 function localImproveBio(text, style = 'profesional') {
   if (!text) return '';
-  let t = String(text).trim();
-  // Normalizar espacios
-  t = t.replace(/\s+/g, ' ');
-  // Aplicar autocorrecciones heurísticas
-  t = autocorrectText(t, 'f-bio');
-
+  const normalize = (s) => String(s || '').replace(/\s+/g, ' ').trim();
+  const cleaned = autocorrectText(normalize(text), 'f-bio');
   const styleMode = String(style || 'profesional').toLowerCase();
-  if (styleMode === 'formal') {
-    t = t.replace(/^soy\b/i, 'Cuenta con');
-  } else if (styleMode === 'otro') {
-    t = t.replace(/^soy\b/i, 'Es un profesional con');
-  }
 
-  // Capitalizar inicio de oraciones
-  t = t.replace(/(^|[\.\!\?]\s+)([a-záéíóúñ])/g, (m, p1, p2) => p1 + p2.toUpperCase());
-  // Asegurar punto final
-  if (!/[\.\!\?]$/.test(t)) t += '.';
-  // Acortar oraciones muy largas (intento simple)
-  if (t.length > 240) {
-    const commaPos = t.indexOf(',', 120);
-    if (commaPos !== -1) t = t.slice(0, commaPos) + '.' + t.slice(commaPos + 1).trim();
-  }
-  return t;
+  const experienceMatch = cleaned.match(/experiencia en\s+([^.]+)/i);
+  const skillsMatch = cleaned.match(/habilidad(?:es)?(?: clave)?(?: en)?\s+([^.]+)/i);
+  const objectiveMatch = cleaned.match(/objetivo(?: profesional)?(?: a corto plazo)?(?: en| para)?\s+([^.]+)/i);
+  const differentiatorMatch = cleaned.match(/(responsable[^.]*|comprometid[^.]*|orientad[^.]*|enfocad[^.]*|destac[^.]*)/i);
+
+  const experience = normalize(experienceMatch ? experienceMatch[1] : cleaned.split(/[\.\,]/)[0]);
+  const skills = normalize(skillsMatch ? skillsMatch[1] : 'comunicación, liderazgo y trabajo en equipo');
+  const objective = normalize(objectiveMatch ? objectiveMatch[1] : 'la automatización y la mejora de procesos');
+  const differentiator = normalize(differentiatorMatch ? differentiatorMatch[1] : 'responsabilidad, compromiso y orientación a resultados');
+
+  const introMap = {
+    profesional: 'Profesional con experiencia en',
+    formal: 'Cuenta con experiencia en',
+    otro: 'Profesional orientado a'
+  };
+  const intro = introMap[styleMode] || introMap.profesional;
+
+  const sentences = [
+    `${intro} ${experience}.`,
+    `Cuenta con habilidades en ${skills}.`,
+    `Está orientado a ${objective}.`,
+    `Se caracteriza por ${differentiator}.`
+  ];
+
+  return sentences.join(' ');
 }
 
 // Mejora local más agresiva para descripciones de experiencia laboral.
